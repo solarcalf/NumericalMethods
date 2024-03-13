@@ -5,6 +5,7 @@
 #include "TMA.h"
 #include <functional>
 #include <vector>
+#include <iostream>
 #include <array>
 
 // class spline {
@@ -41,26 +42,26 @@ private:
         return f(l + i * h);
     }
 
-    std::vector<FP> set_vector_c() {
-        return {0}; // Placeholder
-    }
-
     void set_vectors() {
-        std::vector<double> a(n), b(n), c(n), d(n);
-
-        c = set_vector_c();
-
+        a = b = c = d = std::vector<FP>(n + 1, 0.0);
+        
         // Here set other vectors
-        for (size_t i = 0; i < n; ++ i) {
-            // a[i] = ...
-            // b[i] = ...
-            // d[i] = ...
+        for (size_t i = 0; i <= n; ++i) {
+            a[i] = f_at(i);
+        }
+
+        TMA run_through(n, a, h, std::make_pair(mu1, mu2));
+        c = run_through.get_solution();
+
+        for (size_t i = 1; i <= n; ++i) {
+            d[i] = (c[i] - c[i - 1]) / h;
+            b[i] = (a[i] - a[i - 1]) / h + c[i] * h / 3.0 + c[i - 1] * h / 6.0;
         }
     }
 
 public:
     spline(FP l, FP r, size_t n, std::function<FP(FP)> f, FP mu1 = 0, FP mu2 = 0): l(l), r(r), n(n), f(f), mu1(mu1), mu2(mu2) {
-        FP h = (r - l) / static_cast<FP>(n);
+        h = (r - l) / static_cast<FP>(n);
         set_vectors();
     }
 
@@ -75,15 +76,33 @@ public:
     FP operator()(FP x) {
         return 3.14;
     }
+    void show_vectors() {
+        for (FP el : a) {
+            std::cout << el << ", ";
+        }
+        std::cout << std::endl;
+        for (FP el : b) {
+            std::cout << el << ", ";
+        }
+        std::cout << std::endl;
+        for (FP el : c) {
+            std::cout << el << ", ";
+        }
+        std::cout << std::endl;
+        for (FP el : d) {
+            std::cout << el << ", ";
+        }
+        std::cout << std::endl;
+    }
 
 private:
-    FP l, r;    // Range
+    FP l, r;                        // Range
     size_t n;
     std::function<FP(FP)> f;
-    FP mu1, mu2;    // Values of second derivative
+    FP mu1, mu2;                    // Values of second derivative
     FP h;
-
     std::vector<FP> a, b, c, d;     // Vectors of coeffs for polynoms
+    
 };
 
 #endif // __SPLINE__
