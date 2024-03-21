@@ -7,6 +7,7 @@
 #include <vector>
 #include <iostream>
 #include <array>
+#include <cmath>
 
 // class spline {
 // private:
@@ -60,22 +61,70 @@ private:
     }
 
 public:
-    spline(FP l, FP r, size_t n, std::function<FP(FP)> f, FP mu1 = 0, FP mu2 = 0): l(l), r(r), n(n), f(f), mu1(mu1), mu2(mu2) {
+    spline(FP l, FP r, size_t n, std::function<FP(FP)> f, std::function<FP(FP)> f1, std::function<FP(FP)> f2, FP mu1 = 0, FP mu2 = 0): 
+        l(l), r(r), n(n), f(f), f1(f1), f2(f2), mu1(mu1), mu2(mu2) {
         h = (r - l) / static_cast<FP>(n);
         set_vectors();
     }
 
     spline() = default;
-    // Constructors with different order of arguments. All delegates to basic one
-    spline(std::function<FP(FP)> f, FP l, FP r, size_t n, FP mu1 = 0, FP mu2 = 0): spline(l, r, n, f, mu1, mu2) {}
-    spline(std::pair<FP, FP> boundaries, size_t n, std::function<FP(FP)> f, std::pair<FP, FP> mu): spline(boundaries.first, boundaries.second, n, f, mu.first, mu.second) {}
-    spline(std::function<FP(FP)> f, std::pair<FP, FP> boundaries, size_t n, std::pair<FP, FP> mu): spline(boundaries.first, boundaries.second, n, f, mu.first, mu.second) {}
 
 public:
     // Main function of this class. Return appoximated value at x
     FP operator()(FP x) {
-        return 3.14;
+        FP x_left, x_right;
+        for (int i = 0; i < n; i++) {
+            x_left = l + (FP)(i) * h;
+            x_right = l + (FP)(i + 1) * h;
+            if (x >= x_left && x <= x_right)
+                return a[i + 1] + b[i + 1] * (x - x_right) + c[i + 1] / 2.0 * pow((x - x_right), 2.0) + d[i + 1] / 6.0 * pow((x - x_right), 3.0);
+        }
+        return 0.0;
     }
+    FP get_a(int i) {
+        return a[i];
+    }
+    FP get_b(int i) {
+        return b[i];
+    }
+    FP get_c(int i) {
+        return c[i];
+    }
+    FP get_d(int i) {
+        return d[i];
+    }
+
+    FP error(FP x) {
+        FP x_left, x_right;
+        for (size_t i = 0; i < n; i++) {
+            x_left = l + static_cast<FP>(i) * h;
+            x_right = l + static_cast<FP>(i + 1) * h;
+            if (x >= x_left && x <= x_right)
+                return fabs(f(x) - a[i + 1] + b[i + 1] * (x - x_right) + c[i + 1] / 2.0 * pow((x - x_right), 2.0) + d[i + 1] / 6.0 * pow((x - x_right), 3.0));
+        }
+        return 0.0;
+    }
+    FP derivative_error(FP x) {
+        FP x_left, x_right;
+        for (size_t i = 0; i < n; i++) {
+            x_left = l + static_cast<FP>(i) * h;
+            x_right = l + static_cast<FP>(i + 1) * h;
+            if (x >= x_left && x <= x_right)
+                return fabs(f1(x) - b[i + 1] + c[i + 1] * (x - x_right) + d[i + 1] / 2.0 * pow((x - x_right), 2.0));
+        }
+        return 0.0;
+    }
+    FP second_derivative_error(FP x) {
+        FP x_left, x_right;
+        for (size_t i = 0; i < n; i++) {
+            x_left = l + static_cast<FP>(i) * h;
+            x_right = l + static_cast<FP>(i + 1) * h;
+            if (x >= x_left && x <= x_right)
+                return fabs(f2(x) - c[i + 1] + d[i + 1] * (x - x_right));
+        }
+        return 0.0;
+    }
+
     void show_vectors() {
         for (FP el : a) {
             std::cout << el << ", ";
@@ -99,6 +148,8 @@ private:
     FP l, r;                        // Range
     size_t n;
     std::function<FP(FP)> f;
+    std::function<FP(FP)> f1;
+    std::function<FP(FP)> f2;
     FP mu1, mu2;                    // Values of second derivative
     FP h;
     std::vector<FP> a, b, c, d;     // Vectors of coeffs for polynoms
