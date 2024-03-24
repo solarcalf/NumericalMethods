@@ -46,7 +46,7 @@ void TMA::run(std::pair<FP, FP> boundaries, std::vector<FP> f) {
 	// Reverse running
 	v[n] = mu2;
 	for (size_t i = n - 1; i > 0; i--) {
-		v[i] = alpha[i] * v[i] + beta[i];
+		v[i] = alpha[i] * v[i + 1] + beta[i];
 	}
 	v[0] = mu1;
 }
