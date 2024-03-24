@@ -1,7 +1,7 @@
 #include "../include/spline.h"
 
 static FP l, r;
-static size_t function_num;
+static size_t function_num; 
 static spline s;
 static FP* approximation;
 static FP* f;

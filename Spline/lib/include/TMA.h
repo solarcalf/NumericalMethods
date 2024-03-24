@@ -2,7 +2,7 @@
 #define __TMA__
 
 #include "root.h"
-
+ 
 class TMA {
 private:
 	std::vector<FP> v;    // Numerical solution

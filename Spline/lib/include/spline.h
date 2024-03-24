@@ -96,7 +96,7 @@ public:
 
     FP get_f(FP i){
         return f(i);
-    }
+    } 
 
     FP get_f1(FP i){
         return f1(i);

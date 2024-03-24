@@ -295,7 +295,7 @@ class Window(QMainWindow):
             item10 = QTableWidgetItem()
             item10.setData(Qt.DisplayRole, "{:.3e}".format(error2[i]) )
             self.table1.setItem(i, 9, item10)
-        FreeAll()
+        FreeAll() 
 
 
 

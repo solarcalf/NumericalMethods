@@ -7,7 +7,7 @@ int main() {
 
 	// spline spline_1(0.5, 2.0, 4, sample_1);
 
-	// spline_1.show_vectors();
+	// spline_1.show_vectors(); 
 
 	return 0;
 }
