@@ -195,10 +195,6 @@ extern "C" FP* get_second_derivative_error(FP a, FP b, uint32_t n) {
 extern "C" void free_all() {
     free(approximation);
     free(f);
-    free(f1);
-    free(f2);
-    free(s1);
-    free(s2);
     free(ai);
     free(bi);
     free(ci);
