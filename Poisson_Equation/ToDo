@@ -1,0 +1,8 @@
+Questions:
+1. How to store matrixes?
+2. How to implement solvers interface due to chosen decision?
+
+Marks:
+1. If difference between implementations of DirichletProblemSolver::solve will be unconsiderable,
+   we can remove spesializations for solve and use GridType template param right inside solve 
+   to adjust conduction.
