@@ -21,16 +21,16 @@ using FP = double;
 *       |                                    |
 *       |                                    |
 *       |                                    |
-*       |                  __________________|
-*       |                  |
-*       |                  |
-*       |                  |
-*       |                  |
-*       |                  |
-*       |                  |
-*       |                  |
-*       |__________________|
-*   (x_0, y_0)       (x_n/2, y_0)  
+*       |__________________                  |
+*                         |                  |
+*                         |                  |
+*                         |                  |
+*                         |                  |
+*                         |                  |
+*                         |                  |
+*                         |                  |
+*                         |__________________|
+*                     (x_0, y_0)       (x_n/2, y_0)  
 *   
 */
 
@@ -41,7 +41,7 @@ namespace numcpp {
 enum GridType 
 {
     Regular,
-    Shape_r
+    ReversedR
 };
 
 
@@ -130,7 +130,7 @@ std::vector<std::vector<FP>> const DirichletProblemSolver<GridType::Regular>::so
 
 // Implementation for r-shaped grid
 template <>
-std::vector<std::vector<FP>> const DirichletProblemSolver<GridType::Shape_r>::solve() 
+std::vector<std::vector<FP>> const DirichletProblemSolver<GridType::ReversedR>::solve() 
 {
     // Placeholder
     return std::vector<std::vector<FP>>();
