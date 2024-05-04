@@ -2,6 +2,7 @@
 #define __SOLVER_HPP__
 
 #include <vector>
+#include <memory>
 
 using FP = double;
 
@@ -20,15 +21,17 @@ public:
 // Solver interface
 class ISolver 
 {
-private:
-    std::vector<FP> initital_approximation;
+protected:
+    std::vector<FP> initial_approximation;
     size_t max_iterations;
     FP required_precision;
-    IMatrix& system_matrix;
+    std::unique_ptr<IMatrix> system_matrix;
 
-protected:
-    ISolver(std::vector<FP> init_approx, size_t max_iters, FP required_precision, IMatrix& system_matrix): 
-    initital_approximation(init_approx), max_iterations(max_iters), required_precision(required_precision), system_matrix(system_matrix) {};
+    ISolver(std::vector<FP> init_approx, size_t max_iters, FP required_precision, std::unique_ptr<IMatrix> system_matrix)
+        : initial_approximation(std::move(init_approx)),
+          max_iterations(max_iters),
+          required_precision(required_precision),
+          system_matrix(std::move(system_matrix)) {}
 
 public:
     virtual std::vector<FP> solve() const = 0;
@@ -39,12 +42,12 @@ public:
 
     void set_initial_approximation(const std::vector<FP>& init_approx)
     {
-        this->initital_approximation = init_approx;
+        this->initial_approximation = init_approx;
     }
 
     void set_initial_approximation(std::vector<FP>&& init_approx)
     {
-        this->initital_approximation = std::move(init_approx);
+        this->initial_approximation = std::move(init_approx);
     }
 
     void set_max_iterations(size_t max_iters)
@@ -57,9 +60,9 @@ public:
         this->required_precision = required_precision;
     }
 
-    void set_system_matrix(IMatrix& system_matrix)
+    void set_system_matrix(std::unique_ptr<IMatrix> system_matrix)
     {
-        this->system_matrix = system_matrix;
+        this->system_matrix = std::move(system_matrix);
     }
 };
 
@@ -68,8 +71,8 @@ public:
 class MinRes: public ISolver 
 {
 public:
-    MinRes(std::vector<FP> initital_approximation, size_t max_iterations, FP required_precision, IMatrix& system_matrix):
-    ISolver(initital_approximation, max_iterations, required_precision, system_matrix) {}
+    MinRes(std::vector<FP> initial_approximation, size_t max_iterations, FP required_precision, std::unique_ptr<IMatrix> system_matrix):
+    ISolver(std::move(initial_approximation), max_iterations, required_precision, std::move(system_matrix)) {}
 
     ~MinRes() = default;
 
@@ -81,8 +84,8 @@ public:
 class ChebyshevIteration: public ISolver
 {
 public:
-    ChebyshevIteration(std::vector<FP> initital_approximation, size_t max_iterations, FP required_precision, IMatrix& system_matrix):
-    ISolver(initital_approximation, max_iterations, required_precision, system_matrix) {}
+    ChebyshevIteration(std::vector<FP> initial_approximation, size_t max_iterations, FP required_precision, std::unique_ptr<IMatrix> system_matrix):
+    ISolver(std::move(initial_approximation), max_iterations, required_precision, std::move(system_matrix)) {}
 
     ~ChebyshevIteration() = default;
 
