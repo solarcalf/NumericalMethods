@@ -30,7 +30,7 @@ using FP = double;
 *                         |                  |
 *                         |                  |
 *                         |__________________|
-*                     (x_0, y_0)       (x_n/2, y_0)  
+*                     (x_n/2, y_0)       (x_n, y_0)  
 *   
 */
 
@@ -109,17 +109,21 @@ std::vector<std::vector<FP>> const DirichletProblemSolver<GridType::Regular>::so
         MatrixForRegularGrid(FP h, FP k): horizonal_coef(1 / (h * h)), vertical_coef(1 / (k * k)) {};
 
         FP at(size_t i, size_t j) override {return 3.14;}
+
+        std::vector<FP> operator*(const std::vector<FP>&) override {return std::vector<FP>(5, 3.14);}
     };
 
     // ...
 
+    std::vector<FP> b;
+
     // How it supposed to be
     std::vector<FP> initial_approximation{0, 0, 0};
-    auto matrix = std::make_unique<MatrixForRegularGrid>(0.1, 0.1);
-    MinRes solver(std::move(initial_approximation), 1000, 0.001, std::move(matrix));
+    std::unique_ptr<IMatrix> matrix = std::make_unique<MatrixForRegularGrid>(0.1, 0.1);
+    MinRes solver(std::move(initial_approximation), 1000, 0.001, std::move(matrix), b);
 
     // Or this way
-    MinRes solver2(std::move(initial_approximation), 1000, 0.001, std::make_unique<MatrixForRegularGrid>(0.1, 0.1));
+    MinRes solver2(std::move(initial_approximation), 1000, 0.001, std::make_unique<MatrixForRegularGrid>(0.1, 0.1), b);
 
     std::vector<FP> solution = solver.solve();
 
