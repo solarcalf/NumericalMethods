@@ -20,6 +20,12 @@ public:
         {0, 2, -1},
         {3, -1, -2}
     };
+        //std::vector<std::vector<FP>> m{
+    //{15.0, 9.0, 2.25, 0},
+    //{9, 15 , 0, 2.25},
+    //{2.25, 0, 15, 9},
+    //{0, 2.25, 9, 15}
+    //}; //чебышева тест
 
     ~mat() override = default;
 
@@ -52,4 +58,14 @@ int main() {
     for (auto val : res)
         std::cout << val << ' ';
     std::cout << '\n';
+
+    //mat m;
+    //std::vector<FP> b{ 26.25, 26.25, 26.25, 26.25 };
+    //std::vector<FP> initial_approximation{ 0, 0, 0, 0 };
+    //std::unique_ptr<numcpp::IMatrix> matrix = std::make_unique<mat>();
+    //numcpp::ChebyshevIteration solver_cheb({ 0, 0, 0, 0 }, 1000, 0.00001, std::move(matrix), b);
+    //auto res_cheb = solver_cheb.solve();
+    //for (auto val : res_cheb)
+    //    std::cout << val << ' ';
+    //std::cout << '\n';
 }

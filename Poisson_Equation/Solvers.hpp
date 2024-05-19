@@ -104,6 +104,7 @@ class IMatrix
 public:
     virtual ~IMatrix() = default;
     virtual FP at(size_t, size_t) = 0;
+    virtual FP size() = 0; // квадратная матрица
     virtual std::vector<FP> operator*(const std::vector<FP>&) = 0;
 };
 
@@ -196,18 +197,50 @@ public:
 };
 
 
-// Chebyshev iteration method
-// class ChebyshevIteration: public ISolver
-// {
-// public:
-//     ChebyshevIteration(std::vector<FP> initial_approximation, size_t max_iterations, FP required_precision, std::unique_ptr<IMatrix> system_matrix, std::vector<FP> b):
-//     ISolver(std::move(initial_approximation), max_iterations, required_precision, std::move(system_matrix), std::move(b)) {}
+ // Chebyshev iteration method
+class ChebyshevIteration: public ISolver
+{
+    public:
+        ChebyshevIteration(std::vector<FP> initial_approximation, size_t max_iterations, FP required_precision, std::unique_ptr<IMatrix> system_matrix, std::vector<FP> b):
+        ISolver(std::move(initial_approximation), max_iterations, required_precision, std::move(system_matrix), std::move(b)) {}
 
-//     ChebyshevIteration() = default;
-//     ~ChebyshevIteration() = default;
+        ChebyshevIteration() = default;
+        ~ChebyshevIteration() = default;
 
-//     std::vector<FP> solve() const override;
-// };
+        std::vector<FP> solve() const override
+        {
+            std::vector<FP> approximation = std::move(initial_approximation);
+            double size = (*system_matrix).size();
+            FP h = sqrt(1.0 / (*system_matrix).at(0, 1));
+            FP k = sqrt(1.0 / (*system_matrix).at(0, sqrt(size)));
+            FP Mmin = 4.0 / pow(h, 2) * pow(sin(PI / 2.0 / (size + 1)), 2) + 4.0 / pow(k, 2) * pow(sin(PI / 2.0 / (size + 1)), 2);
+            FP Mmax = 4.0 / pow(h, 2) * pow(sin(PI * (size) / 2.0 / (size + 1)), 2) + 4.0 / pow(k, 2) * pow(sin(PI * (size) / 2.0 / (size + 1)), 2);
+
+            //FP Mmin = -6.0;
+            //FP Mmax = 7.0; //для тестовой матрицы ММН
+
+            FP k_cheb = 2.0;
+            FP tau0 = 1.0 / ((Mmin + Mmax) / 2.0 + (Mmax - Mmin) / 2 * cos(PI / (2.0 * k_cheb) * (1.0 + 2.0 * 0.0)));
+            FP tau1 = 1.0 / ((Mmin + Mmax) / 2.0 + (Mmax - Mmin) / 2 * cos(PI / (2.0 * k_cheb) * (1.0 + 2.0 * 1.0)));
+
+
+            for (size_t i = 0; i < max_iterations; ++i)
+            {
+                std::vector<FP> residual = (*system_matrix) * approximation - b;
+
+                FP residual_norm = norm(residual);
+                if (residual_norm <= required_precision) break;
+
+                if (i % 2 == 0)
+                    approximation = vector_FMA(residual, -tau0, approximation);
+                else
+                    approximation = vector_FMA(residual, -tau1, approximation);
+            }
+
+            return approximation;
+        }
+        }
+};
     
 
 } // namespace numcpp
