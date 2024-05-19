@@ -42,6 +42,9 @@ public:
         
         return res;
     }
+    FP size() override {
+        return m.size();
+    }
 
 };
 
