@@ -50,15 +50,26 @@ public:
 
 int main() {
     mat m;
-    std::vector<FP> b{13, 1, -5};
-    
-    std::vector<FP> initial_approximation{0, 0, 0};
+    std::vector<FP> b{ 13, 1, -5 };
+
+    std::vector<FP> initial_approximation{ 0, 0, 0 };
     std::unique_ptr<numcpp::IMatrix> matrix = std::make_unique<mat>();
 
-    numcpp::MinRes solver({0, 0, 0}, 1000, 0.00001, std::move(matrix), b);
-    auto res = solver.solve();
+    //numcpp::MinRes solver({ 0, 0, 0 }, 1000, 0.00001, std::move(matrix), b);
+    //auto res = solver.solve();
+    //auto res = solver.solve();
+    //for (auto val : res)
+    //    std::cout << val << ' ';
+    //std::cout << '\n';
 
-    for (auto val : res)
+
+    numcpp::ChebyshevIteration solver_cheb({ 0, 0, 0 }, 1000, 0.00001, std::move(matrix), b);
+    FP Mmin = -6;
+    FP Mmax = 7;
+    solver_cheb.set_Mmin(Mmin);
+    solver_cheb.set_Mmax(Mmax);
+    auto res_cheb = solver_cheb.solve();
+    for (auto val : res_cheb)
         std::cout << val << ' ';
     std::cout << '\n';
 
@@ -66,7 +77,14 @@ int main() {
     //std::vector<FP> b{ 26.25, 26.25, 26.25, 26.25 };
     //std::vector<FP> initial_approximation{ 0, 0, 0, 0 };
     //std::unique_ptr<numcpp::IMatrix> matrix = std::make_unique<mat>();
-    //numcpp::ChebyshevIteration solver_cheb({ 0, 0, 0, 0 }, 1000, 0.00001, std::move(matrix), b);
+    //FP size = (*matrix).size();
+    //FP k = 0.66;
+    //FP h = 0.33;
+    //FP Mmin = 4.0 / pow(h, 2) * pow(sin(PI / 2.0 / (size + 1)), 2) + 4.0 / pow(k, 2) * pow(sin(PI / 2.0 / (size + 1)), 2);
+    //FP Mmax = 4.0 / pow(h, 2) * pow(sin(PI * (size) / 2.0 / (size + 1)), 2) + 4.0 / pow(k, 2) * pow(sin(PI * (size) / 2.0 / (size + 1)), 2);
+    //numcpp::ChebyshevIteration solver_cheb({ 0, 0, 0, 0 }, 1000, 0.00001, std::move(matrix),b);
+    //solver_cheb.set_Mmin(Mmin);
+    //solver_cheb.set_Mmax(Mmax);
     //auto res_cheb = solver_cheb.solve();
     //for (auto val : res_cheb)
     //    std::cout << val << ' ';
