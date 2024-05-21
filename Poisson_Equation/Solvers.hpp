@@ -195,6 +195,44 @@ public:
     }
 };
 
+class TopRelaxation: public ISolver
+{
+    FP omega;
+public:
+    TopRelaxation(std::vector<FP> initial_approximation, size_t max_iterations, FP required_precision, std::unique_ptr<IMatrix> system_matrix, std::vector<FP> b, FP new_omega = 1.0):
+    ISolver(std::move(initial_approximation), max_iterations, required_precision, std::move(system_matrix), std::move(b)), omega(new_omega) {}
+
+    TopRelaxation() = default;
+    ~TopRelaxation() override = default;
+
+    std::vector<FP> solve() const override
+    {
+        size_t size = initial_approximation.size();
+        std::vector<FP> approximation = std::move(initial_approximation);
+        bool accuracy_or_max_iteration_are_achieved = false; 
+        size_t number_of_iterations = 0;
+        //top relaxation main part
+        while(!accuracy_or_max_iteration_are_achieved){
+            FP max_precision = 0;
+            for(size_t i = 0; i < size; i++){
+                FP approx_old = approximation[i];
+                FP approx_new = (1 - omega)* system_matrix->at(i, i)*approximation[i] + omega * b[i];
+                for(size_t j = 0; j < i; j++){
+                    approx_new -= omega*system_matrix->at(i,j)*approximation[j];
+                } 
+                for(size_t j = i+1; j < size; j++){
+                    approx_new -= omega*system_matrix->at(i,j)*approximation[j];
+                } 
+                approx_new /= system_matrix->at(i,i);
+                FP precision = std::abs(approx_old - approx_new);
+                max_precision = precision > max_precision ? precision : max_precision;
+                approximation[i] = approx_new;
+            }
+            number_of_iterations++;
+            accuracy_or_max_iteration_are_achieved = (max_precision <= required_precision || number_of_iterations >= max_iterations) ? true : false;}
+        return approximation;
+    }
+};
 
 // Chebyshev iteration method
 // class ChebyshevIteration: public ISolver
