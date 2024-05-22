@@ -126,7 +126,7 @@ namespace numcpp
     public:
         virtual ~IMatrix() = default;
         virtual FP at(size_t, size_t) = 0;
-        virtual FP size() = 0; // êâàäðàòíàÿ ìàòðèöà
+        virtual FP size() = 0; // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
         virtual std::vector<FP> operator*(const std::vector<FP>&) = 0;
 
     };
@@ -309,15 +309,15 @@ namespace numcpp
     };
 
 
-    // Ñonjugate gradient method
-    class ÑonGrad : public ISolver
+    // Conjugate gradient method
+    class ConGrad : public ISolver
     {
     public:
-        ÑonGrad(std::vector<FP> initial_approximation, size_t max_iterations, FP required_precision, std::unique_ptr<IMatrix> system_matrix, std::vector<FP> b) :
+        ConGrad(std::vector<FP> initial_approximation, size_t max_iterations, FP required_precision, std::unique_ptr<IMatrix> system_matrix, std::vector<FP> b) :
             ISolver(std::move(initial_approximation), max_iterations, required_precision, std::move(system_matrix), std::move(b)) {}
 
-        ÑonGrad() = default;
-        ~ÑonGrad() override = default;
+        ConGrad() = default;
+        ~ConGrad() override = default;
 
         std::vector<FP> solve() const override
         {
