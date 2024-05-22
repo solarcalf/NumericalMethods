@@ -47,6 +47,40 @@ public:
     }
 
 };
+void test_TopRelaxation(){
+    size_t n = 3;
+    size_t m = 4;
+    FP omega = 1.0;
+    std::cout << "n = " << n << " m = " << m << '\n';
+    std::array<double, 4> corners = {-1.0, -1.0, 1.0, 1.0};
+    std::vector<FP> init_app((n - 1) * (m - 1), 0.0);
+    auto u = [](double x, double y) { return exp(1 - pow(x, 2) - pow(y, 2)); };
+    auto f = [](double x, double y) { return -4 * exp(1 - pow(x, 2) - pow(y, 2)) * (pow(y, 2) + pow(x, 2) - 1); };
+    auto mu1 = [](double y) { return exp(-pow(y, 2)); };
+    auto mu2 = [](double y) { return exp(-pow(y, 2)); };
+    auto mu3 = [](double x) { return exp(-pow(x, 2)); };
+    auto mu4 = [](double x) { return exp(-pow(x, 2)); };
+
+
+    numcpp::DirichletProblemSolver<numcpp::Regular> dirichlet_task;
+    dirichlet_task.set_fraction(m, n);
+    dirichlet_task.set_corners(corners);
+    dirichlet_task.set_u(u);
+    dirichlet_task.set_f(f);
+    dirichlet_task.set_boundary_conditions({mu1, mu2, mu3, mu4});
+    dirichlet_task.set_solver(std::make_unique<numcpp::TopRelaxation>(init_app, 10000, 0.00001, nullptr, std::vector<FP>(), omega));
+    //dirichlet_task.set_solver(std::make_unique<numcpp::TopRelaxationOptimizedForDirichletRegularGrid>(init_app, 10000, 0.00001, nullptr, std::vector<FP>(),
+    // f, mu1, mu2, mu3, mu4, n, m, corners, omega));
+    auto solution = dirichlet_task.solve();
+
+
+    // for (const auto& row : solution) {
+    //     for (double val : row) {
+    //         std::cout << val << " ";
+    //     }
+    //     std::cout << std::endl;
+    // }
+}
 
 int main() {
     mat m;
