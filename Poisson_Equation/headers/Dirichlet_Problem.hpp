@@ -98,39 +98,127 @@ namespace numcpp {
 
 
     // Implementation for regular grid
-    template<>
-    std::vector<std::vector<FP>> const DirichletProblemSolver<GridType::Regular>::solve()
+template<>
+std::vector<std::vector<FP>> const DirichletProblemSolver<GridType::Regular>::solve()
+{
+    class MatrixForRegularGrid : public numcpp::IMatrix
     {
-        class MatrixForRegularGrid : public numcpp::IMatrix
+        FP horizonal_coef, vertical_coef, A;  // Coefficient for cross template
+        size_t n, m;
+    public:
+        MatrixForRegularGrid(size_t n, size_t m, FP h, FP k):n(n), m(m),
+         horizonal_coef(1.0 / (h * h)), vertical_coef(1.0 / (k * k)), A(-2*(horizonal_coef + vertical_coef))
+        {};
+
+        FP at(size_t i, size_t j) override 
         {
-            FP horizonal_coef, vertical_coef;  // Coefficient for cross template
+            if(i == j)
+                return A;
+            else if(i == j + n - 1 || i + n - 1 == j)
+                return vertical_coef;
+            else if(i == j + 1 && i % (n - 1) != 0 || i + 1 == j && j % (n - 1) != 0)
+                return horizonal_coef;
+            else return 0;
 
-        public:
-            MatrixForRegularGrid(FP h, FP k) : horizonal_coef(1 / (h * h)), vertical_coef(1 / (k * k)) {};
-
-            FP at(size_t i, size_t j) override { return 3.14; }
-
-            std::vector<FP> operator*(const std::vector<FP>&) override { return std::vector<FP>(5, 3.14); }
         };
 
-        // ...
+        std::vector<FP> operator*(const std::vector<FP>& v) override 
+        {
+            std::vector<FP> result(v.size());
 
-        std::vector<FP> b;
+            //first block row
+            result[0] = A * v[0] + horizonal_coef * v[1] + vertical_coef * v[n - 1];
+#pragma omp parallel for
+            for(size_t i = 1; i < n - 2; ++i)
+            {
+                result[i] = horizonal_coef * v[i - 1] + A * v[i] + horizonal_coef * v[i + 1] + vertical_coef * v[i + n - 1];
+            }
+            result[n - 2] = horizonal_coef * v[n - 3] + A * v[n - 2] + vertical_coef * v[2 * n - 3];
 
-        // How it supposed to be
-        std::vector<FP> initial_approximation{ 0, 0, 0 };
-        std::unique_ptr<IMatrix> matrix = std::make_unique<MatrixForRegularGrid>(0.1, 0.1);
-        MinRes solver(std::move(initial_approximation), 1000, 0.001, std::move(matrix), b);
+            //main part
+#pragma omp parallel for
+            for(size_t i = 1; i < m - 1; ++i)
+            {
+                size_t ind = i * (n - 1);
+                result[ind] = vertical_coef * v[ind - n + 1] + A * v[ind] + horizonal_coef * v[ind + 1] + vertical_coef * v[ind + n - 1];
+                for(size_t j = 1; j < n - 2; ++j)
+                {   ind++;
+                    result[ind] = vertical_coef * v[ind - n + 1] + horizonal_coef * v[ind - 1] + A * v[ind] + horizonal_coef * v[ind + 1] + vertical_coef * v[ind + n - 1];
+                } 
+                ind++;
+                result[ind] = vertical_coef * v[ind - n + 1] + horizonal_coef * v[ind - 1] + A * v[ind] + vertical_coef * v[ind + n - 1];
+            }
 
-        // Or this way
-        MinRes solver2(std::move(initial_approximation), 1000, 0.001, std::make_unique<MatrixForRegularGrid>(0.1, 0.1), b);
+            //last block row
+            size_t ind = (n - 1) * (m - 1) - n + 1;
+            result[ind] = vertical_coef * v[ind - n + 1] + A * v[ind] + horizonal_coef * v[ind + 1];
+#pragma omp parallel for
+            for(size_t i = 1; i < n - 2; ++i)
+            {
+                size_t ind_for = (n - 1) * (m - 1) - n + 1 + i;
+                result[ind_for] = vertical_coef * v[ind_for - n + 1] + horizonal_coef * v[ind_for - 1] + A * v[ind_for] + horizonal_coef * v[ind_for + 1];
+            }
+            ind = (n - 1) * (m - 1) - 1;
+            result[ind] = vertical_coef * v[ind - n + 1] + horizonal_coef * v[ind - 1] + A * v[ind];
 
-        std::vector<FP> solution = solver.solve();
+            return result;
+        };
+    };
 
-        // Create return value with std::vector<std::vector<FP>> type with obtained solution instead placeholder
-        return std::vector<std::vector<FP>>();
+    std::vector<FP> b((n - 1)*(m - 1));
+    FP h, k, horizonal_coef, vertical_coef;
+    h = (corners[2] - corners[0]) / n;
+    k = (corners[3] - corners[1]) / m;
+    horizonal_coef = 1 / (h * h);
+    vertical_coef =  1 / (k * k);
+
+    for(size_t j = 0; j < m - 1; j++)
+        for(size_t i = 0; i < n - 1; i++)
+        {
+            size_t ind = (n-1)*j + i;
+            FP y = corners[1] + (j+1) * k;
+            FP x = corners[0] + (i+1) * h;
+            b[ind] = -f(x, y);
+
+            if(j == 0)
+                b[ind] -= mu3(x)*vertical_coef;
+            
+            else if(j == m - 2)
+                b[ind] -= mu4(x)*vertical_coef;
+            
+            if(i == 0)
+                b[ind] -= mu1(y)*horizonal_coef;
+            
+            else if(i == n - 2)
+                b[ind] -= mu2(y)*horizonal_coef;
+            
+        }
+
+    std::unique_ptr<IMatrix> matrix = std::make_unique<MatrixForRegularGrid>(n, m, h, k);
+    solver->set_system_matrix(std::move(matrix));
+    solver->set_b(b);
+    std::vector<FP> solution = solver->solve();
+
+    std::vector<std::vector<FP>> res;
+    res.resize(m - 1);
+
+    FP approximation_error = 0;
+
+    for(size_t i = 0; i < m - 1; i++)
+    {
+        for(size_t j = 0; j < n - 1; j++)
+        {
+            FP y = corners[1] + (i + 1) * k;
+            FP x = corners[0] + (j + 1) * h;
+            FP dot_solution = solution[(n - 1) * i + j];
+            approximation_error = std::max(std::abs(u(x, y) - dot_solution), approximation_error);
+            res[i].push_back(dot_solution); 
+        }
     }
-
+    
+    std::cout << "общая погрешность " << approximation_error << '\n';
+    return res;
+}
 
     // Implementation for r-shaped grid
     template <>
