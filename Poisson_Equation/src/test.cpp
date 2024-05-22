@@ -7,8 +7,8 @@
 #include <chrono>
 #include <cmath>
 
-// #include "Dirichlet_Problem.hpp"
-#include "Solvers.hpp"
+#include "../headers/Dirichlet_Problem.hpp"
+#include "../headers/Solvers.hpp"
 
 #define FP double
 
@@ -48,9 +48,9 @@ public:
 
 };
 void test_TopRelaxation(){
-    size_t n = 3;
-    size_t m = 4;
-    FP omega = 1.0;
+    size_t n = 100;
+    size_t m = 100;
+    FP omega = 1.9;
     std::cout << "n = " << n << " m = " << m << '\n';
     std::array<double, 4> corners = {-1.0, -1.0, 1.0, 1.0};
     std::vector<FP> init_app((n - 1) * (m - 1), 0.0);
@@ -68,10 +68,16 @@ void test_TopRelaxation(){
     dirichlet_task.set_u(u);
     dirichlet_task.set_f(f);
     dirichlet_task.set_boundary_conditions({mu1, mu2, mu3, mu4});
-    dirichlet_task.set_solver(std::make_unique<numcpp::TopRelaxation>(init_app, 10000, 0.00001, nullptr, std::vector<FP>(), omega));
-    //dirichlet_task.set_solver(std::make_unique<numcpp::TopRelaxationOptimizedForDirichletRegularGrid>(init_app, 10000, 0.00001, nullptr, std::vector<FP>(),
-    // f, mu1, mu2, mu3, mu4, n, m, corners, omega));
+    //dirichlet_task.set_solver(std::make_unique<numcpp::TopRelaxation>(init_app, 10000, 0.00001, nullptr, std::vector<FP>(), omega));
+    dirichlet_task.set_solver(std::make_unique<numcpp::TopRelaxationOptimizedForDirichletRegularGrid>(init_app, 100000, 0.00001, nullptr, std::vector<FP>(),
+     f, mu1, mu2, mu3, mu4, n, m, corners, omega));
+    auto start = std::chrono::high_resolution_clock::now();
+    
     auto solution = dirichlet_task.solve();
+
+    auto end = std::chrono::high_resolution_clock::now();
+    int64_t duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
+    std::cout << "Время работы в секундах: " << duration / 1000000 << std::endl;
 
 
     // for (const auto& row : solution) {
@@ -83,11 +89,12 @@ void test_TopRelaxation(){
 }
 
 int main() {
-    mat m;
-    std::vector<FP> b{ 13, 1, -5 };
+    test_TopRelaxation();
+    // mat m;
+    // std::vector<FP> b{ 13, 1, -5 };
 
-    std::vector<FP> initial_approximation{ 0, 0, 0 };
-    std::unique_ptr<numcpp::IMatrix> matrix = std::make_unique<mat>();
+    // std::vector<FP> initial_approximation{ 0, 0, 0 };
+    // std::unique_ptr<numcpp::IMatrix> matrix = std::make_unique<mat>();
 
     //numcpp::MinRes solver({ 0, 0, 0 }, 1000, 0.00001, std::move(matrix), b);
     //auto res = solver.solve();
@@ -97,15 +104,15 @@ int main() {
     //std::cout << '\n';
 
 
-    numcpp::ChebyshevIteration solver_cheb({ 0, 0, 0 }, 1000, 0.00001, std::move(matrix), b);
-    FP Mmin = -6;
-    FP Mmax = 7;
-    solver_cheb.set_Mmin(Mmin);
-    solver_cheb.set_Mmax(Mmax);
-    auto res_cheb = solver_cheb.solve();
-    for (auto val : res_cheb)
-        std::cout << val << ' ';
-    std::cout << '\n';
+    // numcpp::ChebyshevIteration solver_cheb({ 0, 0, 0 }, 1000, 0.00001, std::move(matrix), b);
+    // FP Mmin = -6;
+    // FP Mmax = 7;
+    // solver_cheb.set_Mmin(Mmin);
+    // solver_cheb.set_Mmax(Mmax);
+    // auto res_cheb = solver_cheb.solve();
+    // for (auto val : res_cheb)
+    //     std::cout << val << ' ';
+    // std::cout << '\n';
 
     //mat m;
     //std::vector<FP> b{ 26.25, 26.25, 26.25, 26.25 };

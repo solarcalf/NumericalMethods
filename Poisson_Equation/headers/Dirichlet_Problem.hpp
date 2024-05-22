@@ -163,6 +163,7 @@ std::vector<std::vector<FP>> const DirichletProblemSolver<GridType::Regular>::so
 
             return result;
         };
+        FP size(){ return (n - 1) * (m - 1); }
     };
 
     std::vector<FP> b((n - 1)*(m - 1));
@@ -205,7 +206,6 @@ std::vector<std::vector<FP>> const DirichletProblemSolver<GridType::Regular>::so
     FP approximation_error = 0;
 
     for(size_t i = 0; i < m - 1; i++)
-    {
         for(size_t j = 0; j < n - 1; j++)
         {
             FP y = corners[1] + (i + 1) * k;
@@ -214,7 +214,6 @@ std::vector<std::vector<FP>> const DirichletProblemSolver<GridType::Regular>::so
             approximation_error = std::max(std::abs(u(x, y) - dot_solution), approximation_error);
             res[i].push_back(dot_solution); 
         }
-    }
     
     std::cout << "общая погрешность " << approximation_error << '\n';
     return res;
