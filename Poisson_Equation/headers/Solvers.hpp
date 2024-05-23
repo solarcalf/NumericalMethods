@@ -6,6 +6,7 @@
 #include <memory>
 #include <omp.h>
 #include <immintrin.h>
+#include <iostream>
 #include <cmath>
 
 using FP = double;
@@ -261,6 +262,99 @@ namespace numcpp
             std::vector<FP> residual = (*system_matrix) * approximation - b; 
             FP residual_norm = norm(residual);
             std::cout << "погрешность решения СЛАУ " << residual_norm << std::endl;
+
+            return approximation;
+        }
+    };
+
+    class TopRelaxationOptimizedForDirichletRegularGrid: public ISolver//without using grid
+    {
+        using one_dim_function = std::function<FP(FP)>;
+        using two_dim_function = std::function<FP(FP, FP)>;
+
+        two_dim_function f;
+        one_dim_function mu1, mu2, mu3, mu4;
+
+        std::array<FP, 4> corners;  // {x0, y0, xn, ym}
+
+        FP omega;
+
+        size_t n, m;
+    public:
+        TopRelaxationOptimizedForDirichletRegularGrid(std::vector<FP> initial_approximation, size_t max_iterations, FP required_precision, std::unique_ptr<IMatrix> system_matrix, 
+        std::vector<FP> b, two_dim_function new_f, one_dim_function new_mu1, one_dim_function new_mu2, one_dim_function new_mu3, one_dim_function new_mu4, 
+        size_t new_n, size_t new_m, std::array<FP, 4> new_corners, FP new_omega = 1.0):
+        ISolver(std::move(initial_approximation), max_iterations, required_precision, std::move(system_matrix), std::move(b)), f(new_f), 
+        mu1(new_mu1), mu2(new_mu2), mu3(new_mu3), mu4(new_mu4), n(new_n), m(new_m), corners(new_corners), omega(new_omega) {}
+
+        TopRelaxationOptimizedForDirichletRegularGrid() = default;
+        ~TopRelaxationOptimizedForDirichletRegularGrid() override = default;
+
+        std::vector<FP> solve() const override
+        {
+            size_t size = initial_approximation.size();
+            std::vector<FP> approximation = std::move(initial_approximation);
+
+            std::vector<FP> residual = (*system_matrix) * approximation - b; 
+            FP residual_norm = norm(residual);
+            if (residual_norm <= required_precision) return approximation;
+
+            std::vector<std::vector<FP>> approximation_matrix(n + 1, std::vector<FP>(m + 1));
+            FP h = (corners[2] - corners[0]) / n;
+            FP k = (corners[3] - corners[1]) / m;
+            FP vertical_coef, horizonal_coef, A;
+            horizonal_coef = -1.0 / (h * h);
+            vertical_coef = -1.0 / (k * k);
+            A = -2*(horizonal_coef + vertical_coef);
+            size_t ind = 0;
+
+            for(size_t j = 1; j < m; ++j)
+                for(size_t i = 1; i < n; ++i)
+                    approximation_matrix[i][j] = ind++;//approximation[ind++];
+
+            for(size_t i = 0; i < n + 1; ++i)
+            {
+                approximation_matrix[i][0] = mu3(corners[0] + i * h);
+                approximation_matrix[i][m] = mu4(corners[0] + i * h);
+            }
+            for(size_t j = 0; j < m + 1; ++j)
+            {
+                approximation_matrix[0][j] = mu1(corners[1] + j * k);
+                approximation_matrix[n][j] = mu2(corners[1] + j * k);
+            }
+
+            size_t ii = 0;
+            for (; ii < max_iterations; ++ii)
+            {
+                residual_norm = 0;
+                for(size_t j = 1; j < m; ++j)
+                    for(size_t i = 1; i < n; ++i)
+                    {
+                        FP x = corners[0] + i * h;
+                        FP y = corners[1] + j * k;
+
+                        FP approx_old = approximation_matrix[i][j];
+                        FP approx_new = -omega * (horizonal_coef * (approximation_matrix[i + 1][j] + approximation_matrix[i - 1][j]) + vertical_coef * (approximation_matrix[i][j + 1] + approximation_matrix[i][j - 1]));
+                        approx_new += (1 - omega) * A * approximation_matrix[i][j] + omega * f(x, y);
+                        approx_new /= A;
+                        approximation_matrix[i][j] = approx_new;
+
+                        residual_norm = std::max(std::abs(approx_old - approx_new), residual_norm);
+                    }
+                if (residual_norm <= required_precision) break;
+            }
+            if(ii == max_iterations) std::cout << "достигнуто максимальное количество шагов!\n";
+            std::cout << "eps " << residual_norm << std::endl;
+            std::cout << "итераций " << ii << '\n';
+
+            ind = 0;
+            for(size_t i = 1; i < m; ++i)
+                for(size_t j = 1; j < n; ++j)
+                    approximation[ind++] = approximation_matrix[j][i];
+
+            residual = (*system_matrix) * approximation - b; 
+            residual_norm = norm(residual);
+            std::cout << "невязка " << residual_norm << '\n';
 
             return approximation;
         }
