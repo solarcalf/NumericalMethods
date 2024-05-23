@@ -6,6 +6,7 @@
 #include <memory>
 #include <omp.h>
 #include <immintrin.h>
+#include <iostream>
 #include <cmath>
 
 using FP = double;
@@ -343,12 +344,17 @@ namespace numcpp
                 if (residual_norm <= required_precision) break;
             }
             if(ii == max_iterations) std::cout << "достигнуто максимальное количество шагов!\n";
-            std::cout << "погрешность решения СЛАУ " << residual_norm << std::endl;
+            std::cout << "eps " << residual_norm << std::endl;
+            std::cout << "итераций " << ii << '\n';
 
             ind = 0;
             for(size_t i = 1; i < m; ++i)
                 for(size_t j = 1; j < n; ++j)
                     approximation[ind++] = approximation_matrix[j][i];
+
+            residual = (*system_matrix) * approximation - b; 
+            residual_norm = norm(residual);
+            std::cout << "невязка " << residual_norm << '\n';
 
             return approximation;
         }

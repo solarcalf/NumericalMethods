@@ -48,9 +48,9 @@ public:
 
 };
 void test_TopRelaxation(){
-    size_t n = 100;
-    size_t m = 100;
-    FP omega = 1.9;
+    size_t n = 2048;
+    size_t m = 2048;
+    FP omega = 1.95;
     std::cout << "n = " << n << " m = " << m << '\n';
     std::array<double, 4> corners = {-1.0, -1.0, 1.0, 1.0};
     std::vector<FP> init_app((n - 1) * (m - 1), 0.0);
@@ -69,7 +69,7 @@ void test_TopRelaxation(){
     dirichlet_task.set_f(f);
     dirichlet_task.set_boundary_conditions({mu1, mu2, mu3, mu4});
     //dirichlet_task.set_solver(std::make_unique<numcpp::TopRelaxation>(init_app, 10000, 0.00001, nullptr, std::vector<FP>(), omega));
-    dirichlet_task.set_solver(std::make_unique<numcpp::TopRelaxationOptimizedForDirichletRegularGrid>(init_app, 100000, 0.00001, nullptr, std::vector<FP>(),
+    dirichlet_task.set_solver(std::make_unique<numcpp::TopRelaxationOptimizedForDirichletRegularGrid>(init_app, 1000000000, 0.0000000000001, nullptr, std::vector<FP>(),
      f, mu1, mu2, mu3, mu4, n, m, corners, omega));
     auto start = std::chrono::high_resolution_clock::now();
     
@@ -78,8 +78,6 @@ void test_TopRelaxation(){
     auto end = std::chrono::high_resolution_clock::now();
     int64_t duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
     std::cout << "Время работы в секундах: " << duration / 1000000 << std::endl;
-
-
     // for (const auto& row : solution) {
     //     for (double val : row) {
     //         std::cout << val << " ";
