@@ -226,7 +226,7 @@ std::vector<std::vector<FP>> const DirichletProblemSolver<GridType::Regular>::so
             res[i].push_back(dot_solution); 
         }
     
-    std::cout << "общая погрешность " << approximation_error << '\n';
+    std::cout << "General error: " << approximation_error << '\n';
     return res;
 }
 
@@ -506,7 +506,7 @@ std::vector<std::vector<FP>> const DirichletProblemSolver<GridType::Regular>::so
         {
             approximation_error = std::max(std::abs(solution[i] - real_sol[i]), approximation_error);
         }
-        std::cout << "Общая погрешность: " << approximation_error << std::endl;
+        std::cout << "General error: " << approximation_error << std::endl;
 
         // Placeholder
         return std::vector<std::vector<FP>>();
