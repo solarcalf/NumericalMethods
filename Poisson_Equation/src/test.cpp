@@ -106,7 +106,7 @@ void test_ConGrad()
     
     numcpp::DirichletProblemSolver<numcpp::GridType::ReversedR> solver;
 
-    solver.set_solver(std::make_unique<numcpp::ConGrad>(initial_approximation, 10000, 0.0000000000001, nullptr, std::vector<FP>()));
+    solver.set_solver(std::make_unique<numcpp::ConGrad>(initial_approximation, 10000, 0.000000001, nullptr, std::vector<FP>()));
 
     solver.set_fraction(n, m);
     solver.set_corners(corners);
@@ -123,7 +123,7 @@ void test_ConGrad()
 }
 
 int main() {
-    test_TopRelaxation();
+    test_ConGrad();
     // mat m;
     // std::vector<FP> b{ 13, 1, -5 };
 
