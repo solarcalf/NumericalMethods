@@ -1,0 +1,33 @@
+name: Build application
+
+on: [push, pull_request]
+
+jobs:
+ windows-msvc-build:
+    runs-on: windows-latest
+    steps:
+    - uses: actions/checkout@v1
+    - name: Build
+      shell: bash
+      run: |
+        export CMAKE_BUILD_PARALLEL_LEVEL=4
+        mkdir build
+        cd Poisson_Equation/sln
+        cmake \
+            -A x64 \
+            -B ${PWD}/build
+        cmake --build ${PWD}/build --config Release
+ ubuntu-gcc-build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v1
+    - name: Build
+      run: |
+        sudo apt-get update
+        sudo apt install libomp-dev
+        mkdir build
+        cd Poisson_Equation/sln
+        cmake \
+            -A x64 \
+            -B ${PWD}/build
+        cmake --build ${PWD}/build --config Release
