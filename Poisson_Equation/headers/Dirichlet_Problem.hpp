@@ -57,7 +57,7 @@ namespace numcpp {
         std::array<FP, 4> corners;  // {x0, y0, xn, ym}
 
         two_dim_function u, f;
-        one_dim_function mu1, mu2, mu3, mu4;
+        one_dim_function mu1, mu2, mu3, mu4, mu5, mu6;
 
     public:
         std::vector<std::vector<FP>> const solve();
@@ -94,6 +94,16 @@ namespace numcpp {
             this->mu2 = std::move(new_mu[1]);
             this->mu3 = std::move(new_mu[2]);
             this->mu4 = std::move(new_mu[3]);
+        }
+
+        void set_boundary_conditions_for_r_shaped_grid(std::array<one_dim_function, 6> new_mu)
+        {
+            this->mu1 = std::move(new_mu[0]);
+            this->mu2 = std::move(new_mu[1]);
+            this->mu3 = std::move(new_mu[2]);
+            this->mu4 = std::move(new_mu[3]);
+            this->mu5 = std::move(new_mu[4]);
+            this->mu6 = std::move(new_mu[5]);
         }
     };
 
@@ -236,6 +246,10 @@ std::vector<std::vector<FP>> const DirichletProblemSolver<GridType::Regular>::so
                 this->m = m;
             };
 
+            FP size() override {
+                return (n / 2 - 1) * (m - 1) + (n / 2) * (m / 2 - 1);
+            }
+
             FP at(size_t i, size_t j) override {
                 if (i == j)
                     return A;
@@ -334,12 +348,13 @@ std::vector<std::vector<FP>> const DirichletProblemSolver<GridType::Regular>::so
                 std::vector<FP> result(vec_size, 0.0);
 
                 result[0] = A * vec[0] + horizonal_coef * vec[1] + vertical_coef * vec[n / 2 - 1];
+#pragma omp parallel for
                 for (size_t i = 1; i < n / 2 - 2; ++i)
                 {
                     result[i] = horizonal_coef * vec[i - 1] + A * vec[i] + horizonal_coef * vec[i + 1] + vertical_coef * vec[i + n / 2 - 1];
                 }
                 result[n / 2 - 2] = horizonal_coef * vec[n / 2 - 3] + A * vec[n / 2 - 2] + vertical_coef * vec[n - 3];
-
+#pragma omp parallel for
                 for (size_t i = 1; i < (m / 2) - 1; ++i)
                 {
                     size_t ind = i * (n / 2 - 1);
@@ -355,6 +370,7 @@ std::vector<std::vector<FP>> const DirichletProblemSolver<GridType::Regular>::so
 
                 size_t ind = ((m / 2) - 1) * (n / 2 - 1);
                 result[ind] = vertical_coef * vec[ind - n / 2 + 1] + A * vec[ind] + horizonal_coef * vec[ind + 1] + vertical_coef * vec[ind + n - 1];
+#pragma omp parallel for
                 for (size_t i = ind + 1; i < ind + n / 2 - 2; ++i)
                 {
                     result[i] = vertical_coef * vec[i - n / 2 + 1] + horizonal_coef * vec[i - 1] + A * vec[i] + horizonal_coef * vec[i + 1] + vertical_coef * vec[i + n - 1];
@@ -364,11 +380,13 @@ std::vector<std::vector<FP>> const DirichletProblemSolver<GridType::Regular>::so
 
                 ind++;
                 result[ind] = A * vec[ind] + horizonal_coef * vec[ind + 1] + vertical_coef * vec[ind + n - 1];
+#pragma omp parallel for
                 for (size_t i = 1; i < n / 2; ++i)
                 {
                     result[ind + i] = horizonal_coef * vec[ind + i - 1] + A * vec[ind + i] + horizonal_coef * vec[ind + i + 1] + vertical_coef * vec[ind + i + n - 1];
                 }
                 ind += n / 2;
+#pragma omp parallel for
                 for (size_t i = 0; i < n / 2 - 2; ++i)
                 {
                     result[ind + i] = vertical_coef * vec[ind + i - n + 1] + horizonal_coef * vec[ind + i - 1] + A * vec[ind + i] + horizonal_coef * vec[ind + i + 1] + vertical_coef * vec[ind + i + n - 1];
@@ -377,6 +395,7 @@ std::vector<std::vector<FP>> const DirichletProblemSolver<GridType::Regular>::so
                 result[ind] = vertical_coef * vec[ind - n + 1] + horizonal_coef * vec[ind - 1] + A * vec[ind] + vertical_coef * vec[ind + n - 1];
 
                 ind++;
+#pragma omp parallel for
                 for (size_t i = 0; i < (m / 2) - 3; ++i)
                 {
                     size_t ind_1 = ind + i * (n - 1);
@@ -392,6 +411,7 @@ std::vector<std::vector<FP>> const DirichletProblemSolver<GridType::Regular>::so
 
                 ind = ind + ((m / 2) - 3) * (n - 1);
                 result[ind] = vertical_coef * vec[ind - n + 1] + A * vec[ind] + horizonal_coef * vec[ind + 1];
+#pragma omp parallel for
                 for (size_t i = 1; i < n - 2; ++i)
                 {
                     result[ind + i] = vertical_coef * vec[ind + i - n + 1] + horizonal_coef * vec[ind + i - 1] + A * vec[ind + i] + horizonal_coef * vec[ind + i + 1];
@@ -402,6 +422,91 @@ std::vector<std::vector<FP>> const DirichletProblemSolver<GridType::Regular>::so
                 return result;
             }
         };
+
+        FP h = (corners[2] - corners[0]) / n;
+        FP k = (corners[3] - corners[1]) / m;
+        size_t sz = (n / 2 - 1) * (m - 1) + (n / 2) * (m / 2 - 1);
+
+        FP horizonal_coef = 1 / (h * h);
+        FP vertical_coef = 1 / (k * k);
+
+        std::vector<FP> b;
+        std::vector<FP> real_sol;
+
+        FP start_x = corners[0];
+        FP start_y = corners[1];
+
+        for (size_t j = 1; j <= m / 2; ++j)
+        {
+            for (size_t i = n / 2 + 1; i < n; ++i)
+            {
+                b.push_back(-f(start_x + static_cast<FP>(i) * h, start_y + static_cast<FP>(j) * k));
+                real_sol.push_back(u(start_x + static_cast<FP>(i) * h, start_y + static_cast<FP>(j) * k));
+            }
+        }
+        for (size_t j = m / 2 + 1; j < m; ++j)
+        {
+            for (size_t i = 1; i < n; ++i)
+            {
+                b.push_back(-f(start_x + static_cast<FP>(i) * h, start_y + static_cast<FP>(j) * k));
+                real_sol.push_back(u(start_x + static_cast<FP>(i) * h, start_y + static_cast<FP>(j) * k));
+            }
+        }
+
+        b[0] -= horizonal_coef * mu2(start_y + k) + vertical_coef * mu4(start_x + static_cast<FP>(n / 2 + 1) * h);
+        for (size_t i = 1; i < n / 2 - 2; ++i)
+        {
+            b[i] -= vertical_coef * mu4(start_x + static_cast<FP>(n / 2 + 1 + i) * h);
+        }
+        b[n / 2 - 2] -= horizonal_coef * mu3(start_y + k) + vertical_coef * mu4(start_x + static_cast<FP>(n - 1) * h);
+        
+        size_t ind = 0;
+        for (size_t i = 1; i < (m / 2); ++i)
+        {
+            ind = i * (n / 2 - 1);
+            b[ind] -= horizonal_coef * mu2(start_y + static_cast<FP>(i + 1) * k);
+            ind = i * (n / 2 - 1) + n / 2 - 2;
+            b[ind] -= horizonal_coef * mu3(start_y + static_cast<FP>(i + 1) * k);
+        }
+
+        ind++;
+        b[ind] -= horizonal_coef * mu1(start_y + static_cast<FP>(m / 2 + 1) * k) + vertical_coef * mu5(start_x + h);
+        for (size_t i = 1; i < n / 2; ++i)
+        {
+            b[ind + i] -= vertical_coef * mu5(start_x + static_cast<FP>(i + 1) * h);
+        }
+        ind += (n - 2);
+        b[ind] -= horizonal_coef * mu3(start_y + static_cast<FP>(m / 2 + 1) * k);
+
+        ind++;
+        for (size_t i = 0; i < (m / 2) - 3; ++i)
+        {
+            size_t ind_1 = ind + i * (n - 1);
+            b[ind_1] -= horizonal_coef * mu1(start_y + static_cast<FP>(m / 2 + 2 + i) * k);
+            ind_1 = ind + i * (n - 1) + n - 2;
+            b[ind_1] -= horizonal_coef * mu3(start_y + static_cast<FP>(m / 2 + 2 + i) * k);
+        }
+
+        ind = ind + ((m / 2) - 3) * (n - 1);
+        b[ind] -= vertical_coef * mu6(start_x + h) + horizonal_coef * mu1(start_y + static_cast<FP>(m - 1) * k);
+        for (size_t i = 1; i < n - 2; ++i)
+        {
+            b[ind + i] -= vertical_coef * mu6(start_x + static_cast<FP>(i + 1) * h);
+        }
+        ind = ind + n - 2;
+        b[ind] -= vertical_coef * mu6(start_x + static_cast<FP>(n - 1) * h) + horizonal_coef * mu3(start_y + static_cast<FP>(m - 1) * k);
+
+        std::unique_ptr<IMatrix> matrix = std::make_unique<MatrixForRShapedGrid>(h, k, n, m);
+        solver->set_system_matrix(std::move(matrix));
+        solver->set_b(b);
+        std::vector<FP> solution = solver->solve();
+        
+        FP approximation_error = 0.0;
+        for (size_t i = 0; i < sz; ++i)
+        {
+            approximation_error = std::max(std::abs(solution[i] - real_sol[i]), approximation_error);
+        }
+        std::cout << "Общая погрешность: " << approximation_error << std::endl;
 
         // Placeholder
         return std::vector<std::vector<FP>>();
