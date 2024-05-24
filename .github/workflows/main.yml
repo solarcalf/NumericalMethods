@@ -17,5 +17,5 @@ jobs:
     - name: Run test
       shell: bash
       run: |
-        cd Dirichlet_Problem
+        cd Poisson_Equation/sln/Dirichlet_Problem
         ./Dirichlet_Problem
