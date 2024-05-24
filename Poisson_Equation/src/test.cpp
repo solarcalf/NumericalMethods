@@ -85,6 +85,42 @@ void test_TopRelaxation(){
     //     std::cout << std::endl;
     // }
 }
+void test_ConGrad()
+{
+    size_t n = 400;
+    size_t m = 400;
+
+    size_t sz = (n / 2 - 1) * (m - 1) + (n / 2) * (m / 2 - 1);
+
+    std::array<double, 4> corners = {-1.0, -1.0, 1.0, 1.0};
+    auto u = [](double x, double y) { return exp(1 - pow(x, 2) - pow(y, 2)); };
+    auto f = [](double x, double y) { return -4 * exp(1 - pow(x, 2) - pow(y, 2)) * (pow(y, 2) + pow(x, 2) - 1); };
+    auto mu1 = [](double y) { return exp(-pow(y, 2)); };
+    auto mu2 = [](double y) { return exp(1.0 - pow(y, 2)); };
+    auto mu3 = [](double y) { return exp(-pow(y, 2)); };
+    auto mu4 = [](double x) { return exp(-pow(x, 2)); };
+    auto mu5 = [](double x) { return exp(1.0 - pow(x, 2)); };
+    auto mu6 = [](double x) { return exp(-pow(x, 2)); };
+
+    std::vector<FP> initial_approximation(sz, 0.0);
+    
+    numcpp::DirichletProblemSolver<numcpp::GridType::ReversedR> solver;
+
+    solver.set_solver(std::make_unique<numcpp::ConGrad>(initial_approximation, 10000, 0.0000000000001, nullptr, std::vector<FP>()));
+
+    solver.set_fraction(n, m);
+    solver.set_corners(corners);
+    solver.set_u(u);
+    solver.set_f(f);
+    std::array<std::function<FP(FP)>, 6> arr{mu1, mu2, mu3, mu4, mu5, mu6};
+    solver.set_boundary_conditions_for_r_shaped_grid(arr);
+
+    auto start = std::chrono::high_resolution_clock::now();
+    solver.solve();
+    auto end = std::chrono::high_resolution_clock::now();
+    int64_t duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
+    std::cout << "Время работы в секундах: " << duration / 1000000 << std::endl;
+}
 
 int main() {
     test_TopRelaxation();
