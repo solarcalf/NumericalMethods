@@ -8,6 +8,10 @@
 #include <immintrin.h>
 #include <iostream>
 #include <cmath>
+#include <functional>
+
+#include "./Dirichlet_Problem.hpp"
+
 
 using FP = double;
 
