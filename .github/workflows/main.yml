@@ -14,3 +14,8 @@ jobs:
         cd Poisson_Equation/sln
         cmake .
         cmake --build . --config Release
+    - name: Run test
+      shell: bash
+      run: |
+        cd Poisson_Equation/sln/Dirichlet_Problem
+        ./Dirichlet_Problem

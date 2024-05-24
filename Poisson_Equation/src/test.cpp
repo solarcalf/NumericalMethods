@@ -123,7 +123,7 @@ int main()
     size_t m = 1024;
     size_t n = 1024;
 
-    auto LS_solver = std::make_unique<numcpp::MinRes>(std::vector<FP>(), 1000000, 0.00001, nullptr, std::vector<FP>()); 
+    auto LS_solver = std::make_unique<numcpp::ConGrad>(std::vector<FP>(), 1000000, 0.00001, nullptr, std::vector<FP>()); 
 
     test_task_custom_grid(m, n, std::move(LS_solver));
 }
