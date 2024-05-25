@@ -120,10 +120,15 @@ void test_task_custom_grid(size_t m, size_t n, std::unique_ptr<numcpp::ISolver> 
 
 int main() 
 {
-    size_t m = 1024;
-    size_t n = 1024;
+    size_t m1 = 1024;
+    size_t n1 = 1024;
 
-    auto LS_solver = std::make_unique<numcpp::ConGrad>(std::vector<FP>(), 1000000, 0.00001, nullptr, std::vector<FP>()); 
+    auto LS_solver1 = std::make_unique<numcpp::ConGrad>(std::vector<FP>(), 1000000, 0.000000001, nullptr, std::vector<FP>());
+    test_task_custom_grid(m1, n1, std::move(LS_solver1));
 
-    test_task_custom_grid(m, n, std::move(LS_solver));
+    size_t m2 = 200;
+    size_t n2 = 200;
+
+    auto LS_solver2 = std::make_unique<numcpp::MinRes>(std::vector<FP>(), 1000000, 0.000001, nullptr, std::vector<FP>());
+    test_task(m2, n2, std::move(LS_solver2));
 }
