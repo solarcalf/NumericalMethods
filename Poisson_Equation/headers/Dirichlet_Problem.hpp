@@ -508,8 +508,52 @@ std::vector<std::vector<FP>> const DirichletProblemSolver<GridType::Regular>::so
         }
         std::cout << "General error: " << approximation_error << std::endl;
 
+        std::vector<std::vector<FP>> res(n + 1, std::vector<FP>(m + 1, 0));
+
+        for (size_t j = m / 2; j <= m; ++j)
+        {
+            res[0][j] = mu1(start_y + static_cast<FP>(j) * k);
+        }
+        for (size_t j = 0; j <= m / 2; ++j)
+        {
+            res[n / 2][j] = mu2(start_y + static_cast<FP>(j) * k);
+        }
+        for (size_t j = 0; j <= m; ++j)
+        {
+            res[n][j] = mu3(start_y + static_cast<FP>(j) * k);
+        }
+
+        for (size_t i = n / 2 + 1; i < n; ++i)
+        {
+            res[i][0] = mu4(start_x + static_cast<FP>(i) * h);
+        }
+        for (size_t i = 1; i < n / 2; ++i)
+        {
+            res[i][m / 2] = mu5(start_x + static_cast<FP>(i) * h);
+        }
+        for (size_t i = 1; i < n; ++i)
+        {
+            res[i][m] = mu6(start_x + static_cast<FP>(i) * h);
+        }
+
+        size_t index = 0;
+        for (size_t j = 1; j <= m / 2; ++j)
+        {
+            for (size_t i = n / 2 + 1; i < n; ++i)
+            {
+                res[i][j] = solution[index++];
+            }
+        }
+        for (size_t j = m / 2 + 1; j < m; ++j)
+        {
+            for (size_t i = 1; i < n; ++i)
+            {
+                res[i][j] = solution[index++];
+            }
+        }
+
         // Placeholder
-        return std::vector<std::vector<FP>>();
+        return res;
     }
 
 
