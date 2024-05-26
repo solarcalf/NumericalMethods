@@ -60,6 +60,18 @@ namespace numcpp
         return norm;
     }
 
+    FP error(const std::vector<FP>& v1, const std::vector<FP>& v2)
+    {
+        FP error = 0.0;
+
+#pragma omp parallel for reduction(max: error)
+        for (size_t i = 0; i < v1.size(); ++i)
+        {
+            error = std::max(std::abs(v1[i] - v2[i]), error);
+        }
+        return error;
+    }
+
     std::vector<FP> vector_FMA(const std::vector<FP>& lhs, FP coef, const std::vector<FP>& rhs)
     {
         const size_t size = lhs.size();
@@ -210,15 +222,19 @@ namespace numcpp
 
             for (size_t i = 0; i < max_iterations; ++i)
             {
+                std::vector<FP> saved_approximation = approximation;
+
                 std::vector<FP> residual = (*system_matrix) * approximation - b;
 
-                FP residual_norm = norm(residual);
-                if (residual_norm <= required_precision) break;
+                //FP residual_norm = norm(residual);
 
                 std::vector<FP> Ar = (*system_matrix) * residual;
                 FP tau = scalar_product(Ar, residual) / scalar_product(Ar, Ar);
 
                 approximation = vector_FMA(residual, -tau, approximation);
+
+                FP approximation_error = error(saved_approximation, approximation);
+                if (approximation_error <= required_precision) break;
             }
 
             return approximation;
@@ -439,10 +455,11 @@ namespace numcpp
 
             for (size_t i = 1; i < max_iterations; ++i)
             {
+                std::vector<FP> saved_approximation = approximation;
+
                 residual = (*system_matrix) * approximation - b;
 
-                FP residual_norm = norm(residual);
-                if (residual_norm <= required_precision) break;
+                //FP residual_norm = norm(residual);
 
                 FP beta = scalar_product(Ah, residual) / scalar_product(Ah, h);
 
@@ -453,6 +470,9 @@ namespace numcpp
                 alpha = -scalar_product(residual, h) / scalar_product(Ah, h);
 
                 approximation = vector_FMA(h, alpha, approximation);
+
+                FP approximation_error = error(saved_approximation, approximation);
+                if (approximation_error <= required_precision) break;
             }
 
             return approximation;
