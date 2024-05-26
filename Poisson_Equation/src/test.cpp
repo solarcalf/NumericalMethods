@@ -154,17 +154,17 @@ void test_Chebyshev(size_t n, size_t m) {
 
 int main() 
 {
-    // size_t m1 = 1024;
-    // size_t n1 = 1024;
+    size_t m = 200;
+    size_t n = 200;
 
-    // auto LS_solver1 = std::make_unique<numcpp::ConGrad>(std::vector<FP>(), 1000000, 0.000000001, nullptr, std::vector<FP>());
-    // test_task_custom_grid(m1, n1, std::move(LS_solver1));
+    std::cout << "Conjugate gradient method" << std::endl;
+    auto LS_solver1 = std::make_unique<numcpp::ConGrad>(std::vector<FP>(), 1000000, 0.000000001, nullptr, std::vector<FP>());
+    test_task_custom_grid(m, n, std::move(LS_solver1));
 
-    // size_t m2 = 200;
-    // size_t n2 = 200;
+    std::cout << "\nMinimal residual method" << std::endl;
+    auto LS_solver2 = std::make_unique<numcpp::MinRes>(std::vector<FP>(), 1000000, 0.000001, nullptr, std::vector<FP>());
+    test_task(m, n, std::move(LS_solver2));
 
-    // auto LS_solver2 = std::make_unique<numcpp::MinRes>(std::vector<FP>(), 1000000, 0.000001, nullptr, std::vector<FP>());
-    // test_task(m2, n2, std::move(LS_solver2));
-
-    test_Chebyshev(1024,1024);
+    std::cout << "\nChebyshev iteration method" << std::endl;
+    test_Chebyshev(m, n);
 }
