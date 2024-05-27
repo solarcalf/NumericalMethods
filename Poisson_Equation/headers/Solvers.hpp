@@ -465,11 +465,12 @@ namespace numcpp
 
             for (size_t i = 1; i < max_iterations; ++i)
             {
+                std::cout << "======= ITER " << i << " =======" << std::endl;
                 std::vector<FP> saved_approximation = approximation;
 
                 residual = (*system_matrix) * approximation - b;
 
-                //FP residual_norm = norm(residual);
+                FP residual_norm = norm(residual);
 
                 FP beta = scalar_product(Ah, residual) / scalar_product(Ah, h);
 
@@ -482,7 +483,12 @@ namespace numcpp
                 approximation = vector_FMA(h, alpha, approximation);
 
                 FP approximation_error = error(saved_approximation, approximation);
-                if (approximation_error <= required_precision) break;
+                if (approximation_error <= required_precision) 
+                {
+                    std::cout << "Approximation error: " << approximation_error << std::endl;
+                    std::cout << "Residual norm: " << residual_norm << std::endl;
+                    break;
+                }
             }
 
             return approximation;
