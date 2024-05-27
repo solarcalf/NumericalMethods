@@ -501,11 +501,27 @@ std::vector<std::vector<FP>> const DirichletProblemSolver<GridType::Regular>::so
         solver->set_b(b);
         std::vector<FP> solution = solver->solve();
         
+        FP x_max_err = 0.0;
+        FP y_max_err = 0.0;
         FP approximation_error = 0.0;
         for (size_t i = 0; i < sz; ++i)
         {
-            approximation_error = std::max(std::abs(solution[i] - real_sol[i]), approximation_error);
+            if (std::abs(solution[i] - real_sol[i]) > approximation_error)
+            {
+                approximation_error = std::abs(solution[i] - real_sol[i]);
+                if (i < (n / 2 - 1) * (m / 2))
+                {
+                    x_max_err = start_x + static_cast<FP>(n / 2 + 1 + i % (n / 2 - 1)) * h;
+                    y_max_err = start_y + static_cast<FP>(1 + static_cast<int>(i / (n / 2 - 1))) * k;
+                }
+                else
+                {
+                    x_max_err = start_x + static_cast<FP>(1 + (i - (n / 2 - 1) * (m / 2)) % (n - 1)) * h;
+                    y_max_err = start_y + static_cast<FP>(m / 2 + 1 + static_cast<int>((i - (n / 2 - 1)) / (n - 1))) * k;
+                }
+            }
         }
+        std::cout << "Node with maximum error: x = " << x_max_err << ", y = " << y_max_err << std::endl;
         std::cout << "General error: " << approximation_error << std::endl;
 
         std::vector<std::vector<FP>> res(n + 1, std::vector<FP>(m + 1, 0));
