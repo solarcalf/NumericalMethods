@@ -154,8 +154,8 @@ void test_Chebyshev(size_t n, size_t m) {
 
 int main() 
 {
-    size_t m = 4096;
-    size_t n = 4096;
+    size_t m = 2048;
+    size_t n = 2048;
 
     std::cout << "Conjugate gradient method" << std::endl;
     auto LS_solver1 = std::make_unique<numcpp::ConGrad>(std::vector<FP>(), 1000000, 0.0000000000001, nullptr, std::vector<FP>());
