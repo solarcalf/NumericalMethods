@@ -16,4 +16,5 @@ jobs:
     - name: Run test
       shell: bash
       run: |
+        cd Poisson_Equation/src
         ./out.exe
