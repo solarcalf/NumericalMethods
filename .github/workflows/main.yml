@@ -11,11 +11,9 @@ jobs:
       run: |
         sudo apt-get update
         sudo apt install libomp-dev
-        cd Poisson_Equation/sln
-        cmake .
-        cmake --build . --config Release
+        cd Poisson_Equation/src
+        g++ -mavx2 -mfma -fopenmp -o out.exe test.cpp -I./../headers/ -std=c++17 -O3
     - name: Run test
       shell: bash
       run: |
-        cd Poisson_Equation/sln/Dirichlet_Problem
-        ./Dirichlet_Problem
+        ./out.exe

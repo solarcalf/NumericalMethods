@@ -98,32 +98,47 @@ void report(size_t task_num, size_t n, size_t m, size_t max_iterations, FP eps)
 
 int main() 
 {
-    size_t m = 100;
-    size_t n = 100;
+    size_t m = 500;
+    size_t n = 500;
     // solver_num chooses a method for solving a system of linear equations
     // 0 = TopRelaxation
     // 1 = MinRes
     // 2 = ChebyshevIteration
     // 3 = ConGrad
-    size_t solver_num = 3;
+    //size_t solver_num = 3;
     size_t max_iterations = 1000000; 
-    FP eps = 0.000001;
-    FP omega = 1.5;
+    FP eps = 0.00000001;
+    FP omega = 1.99;
     // task_num 
     // 0 = test 
     // 1 = main 
     // 2 = custom test
-    size_t task_num = 1;
+    size_t task_num = 0;
 
-    //test_task(solver_num, n, m, max_iterations, eps, omega); // Regular grid
-    main_task(solver_num, n, m, max_iterations, eps, omega); // Regular grid
+    std::cout << "========== TopRelaxation ==========" << std::endl;
+    test_task(0, n, m, max_iterations, eps, omega); // Regular grid
+    report(task_num, n, m, max_iterations, eps);
+    std::cout << std::endl;
+
+    std::cout << "========== MinRes ==========" << std::endl;
+    test_task(1, n, m, max_iterations, eps, omega); // Regular grid
+    report(task_num, n, m, max_iterations, eps);
+    std::cout << std::endl;
+
+    std::cout << "========== ChebyshevIteration ==========" << std::endl;
+    test_task(2, n, m, max_iterations, eps, omega); // Regular grid
+    report(task_num, n, m, max_iterations, eps);
+    std::cout << std::endl;
+
+    std::cout << "========== ConGrad ==========" << std::endl;
+    test_task(3, n, m, max_iterations, eps, omega); // Regular grid
+    report(task_num, n, m, max_iterations, eps);
+    std::cout << std::endl;
+
+    //main_task(solver_num, n, m, max_iterations, eps, omega); // Regular grid
     // test_custom_task(solver_num, n, m, max_iterations, eps, omega); //ReversedR grid
 
     // the values in the grid nodes can be found in the files
     // for approximation in file "../files/Approximation.txt"
     // for correct solution in file "../files/Correct.txt"
-
-    // report in console
-    report(task_num, n, m, max_iterations, eps);
-
 }
