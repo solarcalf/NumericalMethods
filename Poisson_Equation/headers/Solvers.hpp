@@ -8,6 +8,7 @@
 #include <immintrin.h>
 #include <iostream>
 #include <cmath>
+#include <fstream>
 #include <functional>
 
 #include "./Dirichlet_Problem.hpp"
@@ -58,6 +59,18 @@ namespace numcpp
             norm = std::max(norm, std::abs(v[i]));
 
         return norm;
+    }
+
+    FP error(const std::vector<FP>& v1, const std::vector<FP>& v2)
+    {
+        FP error = 0.0;
+
+#pragma omp parallel for reduction(max: error)
+        for (size_t i = 0; i < v1.size(); ++i)
+        {
+            error = std::max(std::abs(v1[i] - v2[i]), error);
+        }
+        return error;
     }
 
     std::vector<FP> vector_FMA(const std::vector<FP>& lhs, FP coef, const std::vector<FP>& rhs)
@@ -156,6 +169,7 @@ namespace numcpp
             system_matrix(std::move(system_matrix)),
             b(b) {}
 
+
     public:
         virtual std::vector<FP> solve() const = 0;
 
@@ -197,6 +211,7 @@ namespace numcpp
     // Minimal residual method
     class MinRes : public ISolver
     {
+
     public:
         MinRes(std::vector<FP> initial_approximation, size_t max_iterations, FP required_precision, std::unique_ptr<IMatrix> system_matrix, std::vector<FP> b) :
             ISolver(std::move(initial_approximation), max_iterations, required_precision, std::move(system_matrix), std::move(b)) {}
@@ -207,19 +222,29 @@ namespace numcpp
         std::vector<FP> solve() const override
         {
             std::vector<FP> approximation = std::move(initial_approximation);
+            std::vector<FP> residual;
+            FP approximation_error, residual_norm;
+            size_t i = 0;
 
-            for (size_t i = 0; i < max_iterations; ++i)
+            for (; i < max_iterations; ++i)
             {
-                std::vector<FP> residual = (*system_matrix) * approximation - b;
+                std::vector<FP> saved_approximation = approximation;
 
-                FP residual_norm = norm(residual);
-                if (residual_norm <= required_precision) break;
+                residual = (*system_matrix) * approximation - b;
 
                 std::vector<FP> Ar = (*system_matrix) * residual;
                 FP tau = scalar_product(Ar, residual) / scalar_product(Ar, Ar);
 
                 approximation = vector_FMA(residual, -tau, approximation);
+
+                approximation_error = error(saved_approximation, approximation);
+                if (approximation_error <= required_precision) break;
             }
+
+            std::ofstream fout("../files/Solver_results.txt");
+            fout << approximation_error << '\n' << norm(residual) << '\n' << i;
+            fout.close();
+
 
             return approximation;
         }
@@ -239,14 +264,14 @@ namespace numcpp
         {
             size_t size = initial_approximation.size();
             std::vector<FP> approximation = std::move(initial_approximation);
+            size_t i = 0;
+            FP approximation_error = 0;
+            std::vector<FP> residual;
             
             //top relaxation main part
-            for (size_t i = 0; i < max_iterations; ++i)
+            for (; i < max_iterations; ++i)
             {
-                std::vector<FP> residual = (*system_matrix) * approximation - b; 
-                
-                FP residual_norm = norm(residual);
-                if (residual_norm <= required_precision) break;
+                std::vector<FP> saved_approximation = approximation;
                 
                 for(size_t ii = 0; ii < size; ++ii)
                 {
@@ -262,10 +287,14 @@ namespace numcpp
                     approx_new /= system_matrix->at(ii, ii);
                     approximation[ii] = approx_new;
                 }
+                approximation_error = error(saved_approximation, approximation);
+                if (approximation_error <= required_precision) break;
             }
-            std::vector<FP> residual = (*system_matrix) * approximation - b; 
-            FP residual_norm = norm(residual);
-            std::cout << "погрешность решения СЛАУ " << residual_norm << std::endl;
+            residual = (*system_matrix) * approximation - b; 
+
+            std::ofstream fout("../files/Solver_results.txt");
+            fout << approximation_error << '\n' << norm(residual) << '\n' << i;
+            fout.close();
 
             return approximation;
         }
@@ -284,6 +313,7 @@ namespace numcpp
         FP omega;
 
         size_t n, m;
+
     public:
         TopRelaxationOptimizedForDirichletRegularGrid(std::vector<FP> initial_approximation, size_t max_iterations, FP required_precision, std::unique_ptr<IMatrix> system_matrix, 
         std::vector<FP> b, two_dim_function new_f, one_dim_function new_mu1, one_dim_function new_mu2, one_dim_function new_mu3, one_dim_function new_mu4, 
@@ -298,10 +328,8 @@ namespace numcpp
         {
             size_t size = initial_approximation.size();
             std::vector<FP> approximation = std::move(initial_approximation);
-
-            std::vector<FP> residual = (*system_matrix) * approximation - b; 
-            FP residual_norm = norm(residual);
-            if (residual_norm <= required_precision) return approximation;
+            std::vector<FP> residual; 
+            FP residual_norm;
 
             std::vector<std::vector<FP>> approximation_matrix(n + 1, std::vector<FP>(m + 1));
             FP h = (corners[2] - corners[0]) / n;
@@ -347,19 +375,16 @@ namespace numcpp
                     }
                 if (residual_norm <= required_precision) break;
             }
-            if(ii == max_iterations) std::cout << "достигнуто максимальное количество шагов!\n";
-            std::cout << "eps " << residual_norm << std::endl;
-            std::cout << "итераций " << ii << '\n';
-
             ind = 0;
             for(size_t i = 1; i < m; ++i)
                 for(size_t j = 1; j < n; ++j)
                     approximation[ind++] = approximation_matrix[j][i];
 
             residual = (*system_matrix) * approximation - b; 
-            residual_norm = norm(residual);
-            std::cout << "невязка " << residual_norm << '\n';
 
+            std::ofstream fout("../files/Solver_results.txt");
+            fout << residual_norm << '\n' << norm(residual) << '\n' << ii;
+            fout.close();
             return approximation;
         }
     };
@@ -371,10 +396,10 @@ namespace numcpp
     private:
         FP Mmin;
         FP Mmax;
-    public:
-        ChebyshevIteration(std::vector<FP> initial_approximation, size_t max_iterations, FP required_precision, std::unique_ptr<IMatrix> system_matrix, std::vector<FP> b) :
-            ISolver(std::move(initial_approximation), max_iterations, required_precision, std::move(system_matrix), std::move(b)) {}
 
+    public:
+        ChebyshevIteration(std::vector<FP> initial_approximation, size_t max_iterations, FP required_precision, std::unique_ptr<IMatrix> system_matrix, std::vector<FP> b, FP min = 0, FP max = 0) :
+            ISolver(std::move(initial_approximation), max_iterations, required_precision, std::move(system_matrix), std::move(b)), Mmin(min), Mmax(max) {}
         ChebyshevIteration() = default;
         ~ChebyshevIteration() = default;
 
@@ -387,26 +412,38 @@ namespace numcpp
         {
             std::vector<FP> approximation = std::move(initial_approximation);
             double size = (*system_matrix).size();
-            //FP h = sqrt(1.0 / (*system_matrix).at(0, 1));
-            //FP k = sqrt(1.0 / (*system_matrix).at(0, sqrt(size)));
+            FP approximation_error = 0;
+            size_t i = 0;
 
             FP k_cheb = 2.0;
             FP tau0 = 1.0 / ((Mmin + Mmax) / 2.0 + (Mmax - Mmin) / 2 * cos(PI / (2.0 * k_cheb) * (1.0 + 2.0 * 0.0)));
             FP tau1 = 1.0 / ((Mmin + Mmax) / 2.0 + (Mmax - Mmin) / 2 * cos(PI / (2.0 * k_cheb) * (1.0 + 2.0 * 1.0)));
 
+            std::cout<<"tau1 = "<<tau0<<" tau2 = "<<tau1<<"\n";
 
-            for (size_t i = 0; i < max_iterations; ++i)
+
+            for (; i < max_iterations; ++i)
             {
+                std::vector<FP> saved_approximation = approximation;
                 std::vector<FP> residual = (*system_matrix) * approximation - b;
 
-                FP residual_norm = norm(residual);
-                if (residual_norm <= required_precision) break;
+                // FP residual_norm = norm(residual);
+                // if (residual_norm <= required_precision) break;
 
                 if (i % 2 == 0)
-                    approximation = vector_FMA(residual, -tau0, approximation);
+                    approximation = vector_FMA(residual, tau0, approximation);
                 else
-                    approximation = vector_FMA(residual, -tau1, approximation);
+                    approximation = vector_FMA(residual, tau1, approximation);
+
+                approximation_error = error(saved_approximation, approximation);
+                if (approximation_error <= required_precision) break;
             }
+
+            std::vector<FP> residual = (*system_matrix) * approximation - b;
+
+            std::ofstream fout("../files/Solver_results.txt");
+            fout << approximation_error << '\n' << norm(residual) << '\n' << i;
+            fout.close();
 
             return approximation;
         }
@@ -416,6 +453,7 @@ namespace numcpp
     // Conjugate gradient method
     class ConGrad : public ISolver
     {
+
     public:
         ConGrad(std::vector<FP> initial_approximation, size_t max_iterations, FP required_precision, std::unique_ptr<IMatrix> system_matrix, std::vector<FP> b) :
             ISolver(std::move(initial_approximation), max_iterations, required_precision, std::move(system_matrix), std::move(b)) {}
@@ -426,6 +464,7 @@ namespace numcpp
         std::vector<FP> solve() const override
         {
             std::vector<FP> approximation = std::move(initial_approximation);
+            FP approximation_error = 0;
 
             std::vector<FP> residual = (*system_matrix) * approximation - b;
 
@@ -436,13 +475,15 @@ namespace numcpp
             FP alpha = -scalar_product(residual, h) / scalar_product(Ah, h);
 
             approximation = vector_FMA(h, alpha, approximation);
+            size_t i = 1;
 
-            for (size_t i = 1; i < max_iterations; ++i)
+            for (; i < max_iterations; ++i)
             {
+                std::vector<FP> saved_approximation = approximation;
+
                 residual = (*system_matrix) * approximation - b;
 
-                FP residual_norm = norm(residual);
-                if (residual_norm <= required_precision) break;
+                //FP residual_norm = norm(residual);
 
                 FP beta = scalar_product(Ah, residual) / scalar_product(Ah, h);
 
@@ -453,7 +494,16 @@ namespace numcpp
                 alpha = -scalar_product(residual, h) / scalar_product(Ah, h);
 
                 approximation = vector_FMA(h, alpha, approximation);
+
+                approximation_error = error(saved_approximation, approximation);
+                if (approximation_error <= required_precision) break;
             }
+
+            residual = (*system_matrix) * approximation - b;
+
+            std::ofstream fout("../files/Solver_results.txt");
+            fout << approximation_error << '\n' << norm(residual) << '\n' << i;
+            fout.close();
 
             return approximation;
         }

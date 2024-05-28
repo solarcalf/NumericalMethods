@@ -118,12 +118,54 @@ void test_task_custom_grid(size_t m, size_t n, std::unique_ptr<numcpp::ISolver> 
     auto [duration, solution] = estimate_time(solver);
 }
 
+void test_Chebyshev(size_t n, size_t m) {
+    // size_t n = 2048;
+    // size_t m = 2048;
+    std::cout << "n = " << n << " m = " << m << '\n';
+
+    std::array<double, 4> corners = { -1.0, -1.0, 1.0, 1.0 };
+    std::vector<FP> init_app((n - 1) * (m - 1), 0.0);
+
+    FP h = (corners[2] - corners[0]) / n;
+    FP k = (corners[3] - corners[1]) / m;
+
+    FP Mmin = 4.0 / pow(h, 2) * pow(sin(numcpp::PI / 2.0 / n), 2) + 4.0 / pow(k, 2) * pow(sin(numcpp::PI / 2.0 / m), 2);
+    FP Mmax = 4.0 / pow(h, 2) * pow(sin(numcpp::PI * (n - 1) / 2.0 / n), 2) + 4.0 / pow(k, 2) * pow(sin(numcpp::PI * (m - 1) / 2.0 / m), 2);
+    std::cout << "Mmin = " << Mmin << " Mmax = " << Mmax << '\n';
+    auto u = [](double x, double y) { return exp(1 - pow(x, 2) - pow(y, 2)); };
+    auto f = [](double x, double y) { return -4 * exp(1 - pow(x, 2) - pow(y, 2)) * (pow(y, 2) + pow(x, 2) - 1); };
+
+    auto mu1 = [](double y) { return exp(-pow(y, 2)); };
+    auto mu2 = [](double y) { return exp(-pow(y, 2)); };
+    auto mu3 = [](double x) { return exp(-pow(x, 2)); };
+    auto mu4 = [](double x) { return exp(-pow(x, 2)); };
+
+    numcpp::DirichletProblemSolver<numcpp::Regular> dirichlet_task;
+    dirichlet_task.set_fraction(m, n);
+    dirichlet_task.set_corners(corners);
+    dirichlet_task.set_u(u);
+    dirichlet_task.set_f(f);
+    dirichlet_task.set_boundary_conditions({ mu1, mu2, mu3, mu4 });
+
+    dirichlet_task.set_solver(std::make_unique<numcpp::ChebyshevIteration>(init_app, 1000000000, 0.0000000000001, nullptr, std::vector<FP>(), Mmin, Mmax));
+
+    auto [duration, solution] = estimate_time(dirichlet_task);
+}
+
+
 int main() 
 {
-    size_t m = 1024;
-    size_t n = 1024;
+    size_t m = 96;
+    size_t n = 96;
 
-    auto LS_solver = std::make_unique<numcpp::ConGrad>(std::vector<FP>(), 1000000, 0.00001, nullptr, std::vector<FP>()); 
+    std::cout << "Conjugate gradient method" << std::endl;
+    auto LS_solver1 = std::make_unique<numcpp::ConGrad>(std::vector<FP>(), 1000000, 0.0000000000001, nullptr, std::vector<FP>());
+    test_task_custom_grid(m, n, std::move(LS_solver1));
 
-    test_task_custom_grid(m, n, std::move(LS_solver));
+    //std::cout << "\nMinimal residual method" << std::endl;
+    //auto LS_solver2 = std::make_unique<numcpp::MinRes>(std::vector<FP>(), 1000000, 0.000001, nullptr, std::vector<FP>());
+    //test_task(m, n, std::move(LS_solver2));
+
+    //std::cout << "\nChebyshev iteration method" << std::endl;
+    //test_Chebyshev(m, n);
 }

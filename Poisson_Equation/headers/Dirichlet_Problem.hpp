@@ -7,6 +7,7 @@
 #include <memory>
 #include <iostream>
 #include <functional>
+#include <fstream>
 
 using FP = double;
 
@@ -53,6 +54,7 @@ namespace numcpp {
         using two_dim_function = std::function<FP(FP, FP)>;
 
         size_t m, n;
+        size_t task_num;
         std::unique_ptr<ISolver> solver;
         std::array<FP, 4> corners;  // {x0, y0, xn, ym}
 
@@ -104,6 +106,11 @@ namespace numcpp {
             this->mu4 = std::move(new_mu[3]);
             this->mu5 = std::move(new_mu[4]);
             this->mu6 = std::move(new_mu[5]);
+        }
+
+        void set_task_num(size_t num)
+        {
+            this->task_num = num;
         }
     };
 
@@ -210,23 +217,69 @@ std::vector<std::vector<FP>> const DirichletProblemSolver<GridType::Regular>::so
     solver->set_system_matrix(std::move(matrix));
     solver->set_b(b);
     std::vector<FP> solution = solver->solve();
+    std::vector<std::vector<FP>> res(n + 1, std::vector<FP>(m + 1, 0));
+    if(task_num == 0)
+    {
+        FP error = 0; 
+        FP x_max = 0;
+        FP y_max = 0;
 
-    std::vector<std::vector<FP>> res;
-    res.resize(m - 1);
-
-    FP approximation_error = 0;
-
-    for(size_t i = 0; i < m - 1; i++)
-        for(size_t j = 0; j < n - 1; j++)
+        for(size_t i = 0; i < m - 1; i++)
         {
-            FP y = corners[1] + (i + 1) * k;
-            FP x = corners[0] + (j + 1) * h;
-            FP dot_solution = solution[(n - 1) * i + j];
-            approximation_error = std::max(std::abs(u(x, y) - dot_solution), approximation_error);
-            res[i].push_back(dot_solution); 
+            for(size_t j = 0; j < n - 1; j++)
+            {
+                FP y = corners[1] + (i + 1) * k;
+                FP x = corners[0] + (j + 1) * h;
+                FP dot_solution = solution[(n - 1) * i + j];
+                FP dot_correct = u(x, y);
+                if(std::abs(dot_correct - dot_solution) > error)
+                {
+                    error = std::abs(dot_correct - dot_solution);
+                    x_max = x;
+                    y_max = y;
+                }
+            } 
         }
+        std::ofstream fout_res("../files/Error.txt");
+        fout_res << "Задача решена с погрешностью " << error << "\nМаксимальное отклонение точного и численного решений в точке x = " << x_max << ", y = " << y_max << '\n';
+        fout_res.close();
+    }
     
-    std::cout << "General error: " << approximation_error << '\n';
+
+
+    FP start_x = corners[0];
+    FP start_y = corners[1];
+
+    for (size_t j = 0; j <= m; ++j)
+    {
+        res[0][j] = mu1(start_y + static_cast<FP>(j) * k);
+    }
+    for (size_t j = 0; j <= m; ++j)
+    {
+        res[n][j] = mu2(start_y + static_cast<FP>(j) * k);
+    }
+
+
+    for (size_t i = 1; i <= n; ++i)
+    {
+        res[i][0] = mu3(start_x + static_cast<FP>(i) * h);
+    }
+    for (size_t i = 1; i <= n; ++i)
+    {
+        res[i][m] = mu4(start_x + static_cast<FP>(i) * h);
+    }
+
+    size_t index = 0;
+    for (size_t j = 1; j < m; ++j)
+    {
+        for (size_t i = 1; i < n; ++i)
+        {
+            res[i][j] = solution[index++];
+        }
+    }
+
+
+
     return res;
 }
 
@@ -501,15 +554,80 @@ std::vector<std::vector<FP>> const DirichletProblemSolver<GridType::Regular>::so
         solver->set_b(b);
         std::vector<FP> solution = solver->solve();
         
+        FP x_max_err = 0.0;
+        FP y_max_err = 0.0;
         FP approximation_error = 0.0;
         for (size_t i = 0; i < sz; ++i)
         {
-            approximation_error = std::max(std::abs(solution[i] - real_sol[i]), approximation_error);
+            if (std::abs(solution[i] - real_sol[i]) > approximation_error)
+            {
+                approximation_error = std::abs(solution[i] - real_sol[i]);
+                if (i < (n / 2 - 1) * (m / 2))
+                {
+                    x_max_err = start_x + static_cast<FP>(n / 2 + 1 + i % (n / 2 - 1)) * h;
+                    y_max_err = start_y + static_cast<FP>(1 + static_cast<int>(i / (n / 2 - 1))) * k;
+                }
+                else
+                {
+                    x_max_err = start_x + static_cast<FP>(1 + (i - (n / 2 - 1) * (m / 2)) % (n - 1)) * h;
+                    y_max_err = start_y + static_cast<FP>(m / 2 + 1 + static_cast<int>((i - (n / 2 - 1)) / (n - 1))) * k;
+                }
+            }
         }
+
+        std::cout << "Node with maximum error: x = " << x_max_err << ", y = " << y_max_err << std::endl;
         std::cout << "General error: " << approximation_error << std::endl;
 
+        std::ofstream fout_res("../files/Error.txt");
+        fout_res << "Задача решена с погрешностью " << approximation_error << "\nМаксимальное отклонение точного и численного решений в точке x = " << x_max_err << ", y = " << y_max_err << '\n';
+        fout_res.close();
+
+        std::vector<std::vector<FP>> res(n + 1, std::vector<FP>(m + 1, 0));
+
+        for (size_t j = m / 2; j <= m; ++j)
+        {
+            res[0][j] = mu1(start_y + static_cast<FP>(j) * k);
+        }
+        for (size_t j = 0; j <= m / 2; ++j)
+        {
+            res[n / 2][j] = mu2(start_y + static_cast<FP>(j) * k);
+        }
+        for (size_t j = 0; j <= m; ++j)
+        {
+            res[n][j] = mu3(start_y + static_cast<FP>(j) * k);
+        }
+
+        for (size_t i = n / 2 + 1; i < n; ++i)
+        {
+            res[i][0] = mu4(start_x + static_cast<FP>(i) * h);
+        }
+        for (size_t i = 1; i < n / 2; ++i)
+        {
+            res[i][m / 2] = mu5(start_x + static_cast<FP>(i) * h);
+        }
+        for (size_t i = 1; i < n; ++i)
+        {
+            res[i][m] = mu6(start_x + static_cast<FP>(i) * h);
+        }
+
+        size_t index = 0;
+        for (size_t j = 1; j <= m / 2; ++j)
+        {
+            for (size_t i = n / 2 + 1; i < n; ++i)
+            {
+                res[i][j] = solution[index++];
+            }
+        }
+        for (size_t j = m / 2 + 1; j < m; ++j)
+        {
+            for (size_t i = 1; i < n; ++i)
+            {
+                res[i][j] = solution[index++];
+            }
+        }
+
         // Placeholder
-        return std::vector<std::vector<FP>>();
+        return res;
     }
 
 
