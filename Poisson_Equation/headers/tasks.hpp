@@ -59,9 +59,9 @@ void test_task(size_t solver_num, size_t n, size_t m, size_t max_iterations, FP 
 
     std::ofstream fapp("../files/Approximation.txt");
     std::ofstream fcurr("../files/Correct.txt");
-    for(size_t i = 0; i <= n; i++)
+    for(size_t j = m; j > 0; j--)
     {
-        for(size_t j = 0; j <= m; j++)
+        for(size_t i = 0; i <= n; i++)
         {
             FP x = corners[0] + i * h;
             FP y = corners[1] + j* k;
@@ -126,9 +126,10 @@ void test_custom_task(size_t solver_num, size_t n, size_t m, size_t max_iteratio
 
     std::ofstream fapp("../files/Approximation.txt");
     std::ofstream fcurr("../files/Correct.txt");
-    for(size_t i = 0; i <= n; i++)
+    
+    for(size_t j = m; j > 0; j--)
     {
-        for(size_t j = 0; j <= m; j++)
+        for(size_t i = 0; i <= n; i++)
         {
             FP x = corners[0] + i * h;
             FP y = corners[1] + j * k;
@@ -240,9 +241,9 @@ void main_task(size_t solver_num, size_t n, size_t m, size_t max_iterations, FP 
     std::ofstream fapp("../files/Approximation.txt");
     std::ofstream fcurr("../files/Correct.txt");
 
-    for(size_t i = 0; i < m + 1; i++)
+    for(size_t j = m; j > 0; j--)
     {
-        for(size_t j = 0; j < n + 1; j++)
+        for(size_t i = 0; i <= n; i++)
         {
             FP y = corners[1] + i * k*2;
             FP x = corners[0] + j * h*2;
@@ -264,11 +265,24 @@ void main_task(size_t solver_num, size_t n, size_t m, size_t max_iterations, FP 
     fcurr.close();
 
     std::ofstream fout_res("../files/Error.txt");
-    fout_res << "Задача решена с погрешностью " << error << "\nМаксимальное отклонение точного и численного решений в точке x = " << x_max << ", y = " << y_max << '\n';
+    fout_res << "Задача решена с точностью " << error << "\nМаксимальное отклонение 'точного' и численного решений в точке x = " << x_max << ", y = " << y_max << '\n';
     fout_res.close();
-    std::cout << "Задача решена с погрешностью " << error << "\nМаксимальное отклонение точного и численного решений в точке x = " << x_max << ", y = " << y_max << '\n';
+
+    std::vector<std::string> lines_2;
+    std::ifstream file_2("../files/Solver_results.txt");
+    if (file_2.is_open()) 
+    {
+        std::string line;
+        while (getline(file_2, line)) 
+            lines_2.push_back(line);
+        file_2.close();
+    }
 
     std::ofstream fout("../files/Solver_results.txt");
     fout << lines[0] << '\n' << lines[1] << '\n' << lines[2];
     fout.close();
+
+    std::ofstream fout_2("../files/Solver_results_2N.txt");
+    fout_2 << lines_2[0] << '\n' << lines_2[1] << '\n' << lines_2[2];
+    fout_2.close();
 }

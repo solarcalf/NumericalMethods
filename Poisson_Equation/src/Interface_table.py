@@ -27,26 +27,38 @@ class Window(QMainWindow):
         super().__init__()
 
         self.setWindowTitle("Справка")
-        self.setGeometry(100, 100, 1000, 850)
+        self.setGeometry(100, 100, 1040, 1000)
+
+        self.report = QtWidgets.QLabel(self)
+        self.report.setGeometry(360, 10, 670, 260)
+        self.report.setStyleSheet('background-color: white;')
 
 
         #making tables
         self.table1 = QTableWidget(self)
-        self.table1.setGeometry(360, 170, 630, 330)
+        self.table1.setGeometry(360, 300, 670, 335)
         self.table1.setColumnCount(0)
         self.table1.setRowCount(0)
 
         self.table2 = QTableWidget(self)
-        self.table2.setGeometry(360, 510, 630, 330)
+        self.table2.setGeometry(360, 660, 670, 335)
         self.table2.setColumnCount(0)
         self.table2.setRowCount(0)
+
+        label1 = QtWidgets.QLabel(self)
+        label1.setText("Аппроксимация")
+        label1.setGeometry(640, 270, 100, 30)
+
+        label2 = QtWidgets.QLabel(self)
+        label2.setText("Точное решение")
+        label2.setGeometry(640, 630, 120, 30)
 
 
 
         #list of methods
         text1 = QtWidgets.QLabel(self)
         text1.setText("Метод")
-        text1.setGeometry(85, 0, 100, 40)
+        text1.setGeometry(85, 0, 130, 40)
         self.combo_box = QComboBox(self)
         self.combo_box.addItem("Метод верхней релаксации")
         self.combo_box.addItem("Метод минимальных невязок")
@@ -175,10 +187,6 @@ class Window(QMainWindow):
         self.line_editm.setGeometry(180, 560, 100, 30)
         self.line_editm.setText('8')
 
-        self.report = QtWidgets.QLabel(self)
-        self.report.setGeometry(230, 10, 760, 150)
-        self.report.setStyleSheet('background-color: white;')
-
 
         setit = QtWidgets.QLabel(self)
         setit.setText("Максимальное количество итераций ")
@@ -188,10 +196,10 @@ class Window(QMainWindow):
         self.line_editit.setText('1000000')
 
         seteps = QtWidgets.QLabel(self)
-        seteps.setText("Требуемая точность ")
-        seteps.setGeometry(10, 635, 135, 30)
+        seteps.setText("Требуемая точность решения СЛАУ")
+        seteps.setGeometry(10, 635, 230, 30)
         self.line_editeps = QLineEdit(self)
-        self.line_editeps.setGeometry(145, 635, 150, 30)
+        self.line_editeps.setGeometry(240, 635, 110, 30)
         self.line_editeps.setText('0.00000001')
 
 
@@ -204,7 +212,7 @@ class Window(QMainWindow):
 
         #button solve task
         self.button2 = QtWidgets.QPushButton(self)
-        self.button2.setGeometry(30, 760, 200, 30)
+        self.button2.setGeometry(30, 680, 200, 30)
         self.button2.setText("Аппроксимировать")
         self.button2.clicked.connect(self.Solve_task)
 
@@ -260,13 +268,14 @@ class Window(QMainWindow):
             solver_str += "Тестовая задача на нестандартной сетке решена "
         
         if(solver_num == 0):
-            solver_str += "методом верхней релаксации с параметром w = "+ self.omega.text()
+            solver_str += "методом верхней релаксации \nс параметром w = "+ self.omega.text()
         elif(solver_num == 1):
             solver_str += "методом минимальных невязок"
         elif(solver_num == 2):
             solver_str += "методом Чебышева"
         else:
             solver_str += "методом сопряженных градиентов"
+        solver_str += "\n с нулевым начальным приближением "
         
         if(task_num == 0):
             test_task(solver_num, n, m, max_iterations, eps, omega)
@@ -276,9 +285,9 @@ class Window(QMainWindow):
             results = [row.strip() for row in solver_results]
 
             self.report.setText("Для решения тестовой задачи использованы сетка с числом разбиений\n по х : n = " + (str)(n)+
-            ", и числом разбиений по y: m = "+(str)(m)+",\n " + solver_str + ", \n применены критерии остановки по точности eps(мет) = "+
+            ", и числом разбиений по y: m = "+(str)(m)+",\n " + solver_str + ", применены критерии остановки \n по точности решения СЛАУ eps(мет) = "+
             (str)(eps)+" и по числу итераций N(max) = "+ (str)(max_iterations)+".\n \n " + "На решение схемы (СЛАУ) затрачено " + (str)(results[2]) + 
-            " итераций и достигнута точность " + (str)(results[0]) + "\nСхема решена с невязкой " + (str)(results[1]) + "\n" + error.read())
+            " итераций и достигнута точность " + (str)(results[0]) + "\nСхема(СЛАУ) решена с невязкой по норме Чебышёва " + (str)(results[1]) + "\n" + error.read())
             error.close()
             solver_results.close()
 
@@ -286,14 +295,30 @@ class Window(QMainWindow):
         elif(task_num == 1):
             main_task(solver_num, n, m, max_iterations, eps, omega)
 
+            curr_string = "\nДля контроля точности использована сетка(2N) \n с числом разбиений по x : n = "
+            curr_string += (str)(n*2)
+            curr_string += ", и числом разбиений по y: m = "
+            curr_string += (str)(m*2)
+            curr_string += ". \nКритерии остановки метода остаются такими же."
+
             error = open("../files/Error.txt", 'r')
             solver_results = open("../files/Solver_results.txt", 'r')
             results = [row.strip() for row in solver_results]
 
+            solver_results_2 = open("../files/Solver_results_2N.txt", 'r')
+            results_2 = [row.strip() for row in solver_results_2]
+
+            curr_string += "На решение СЛАУ(2N) затрачено " 
+            curr_string += (str)(results_2[2])
+            curr_string += " итераций\n и достигнута точность "
+            curr_string += (str)(results_2[0])
+            curr_string += ".СЛАУ(2N) решена с невязкой по норме Чебышёва "
+            curr_string += (str)(results_2[1])
+
             self.report.setText("Для решения основной задачи использованы сетка с числом разбиений\n по х : n = " + (str)(n)+
-            ", и числом разбиений по y: m = "+(str)(m)+",\n " + solver_str + ", \n применены критерии остановки по точности eps(мет) = "+
+            ", и числом разбиений по y: m = "+(str)(m)+",\n " + solver_str + ", применены критерии остановки \n по точности решения СЛАУ eps(мет) = "+
             (str)(eps)+" и по числу итераций N(max) = "+ (str)(max_iterations)+".\n \n " + "На решение схемы (СЛАУ) затрачено " + (str)(results[2]) + 
-            " итераций и достигнута точность " + (str)(results[0]) + "\nСхема решена с невязкой " + (str)(results[1]) + "\n" + error.read())
+            " итераций и достигнута точность " + (str)(results[0]) + "\nСхема(СЛАУ) решена с невязкой по норме Чебышёва " + (str)(results[1]) + "\n" + curr_string + "\n\n" + error.read())
             error.close()
             solver_results.close()
 
@@ -305,9 +330,9 @@ class Window(QMainWindow):
             results = [row.strip() for row in solver_results]
 
             self.report.setText("Для решения тестовой задачи использованы сетка с числом разбиений\n по х : n = " + (str)(n)+
-            ", и числом разбиений по y: m = "+(str)(m)+",\n " + solver_str + ", \n применены критерии остановки по точности eps(мет) = "+
+            ", и числом разбиений по y: m = "+(str)(m)+",\n " + solver_str + ", применены критерии остановки \n по точности решения СЛАУ eps(мет) = "+
             (str)(eps)+" и по числу итераций N(max) = "+ (str)(max_iterations)+".\n \n " + "На решение схемы (СЛАУ) затрачено " + (str)(results[2]) + 
-            " итераций и достигнута точность " + (str)(results[0]) + "\nСхема решена с невязкой " + (str)(results[1]) + "\n" + error.read())
+            " итераций и достигнута точность " + (str)(results[0]) + "\nСхема(СЛАУ) решена с невязкой по норме Чебышёва " + (str)(results[1]) + "\n" + error.read())
             error.close()
             solver_results.close()
         self.load_data_to_table1("../files/Approximation.txt")
