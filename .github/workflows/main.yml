@@ -1,0 +1,20 @@
+name: Build application
+
+on: [push, pull_request]
+
+jobs:
+ ubuntu-gcc-build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v1
+    - name: Build
+      run: |
+        sudo apt-get update
+        sudo apt install libomp-dev
+        cd Poisson_Equation/src
+        g++ -mavx2 -mfma -fopenmp -o out.exe test.cpp -I./../headers/ -std=c++17 -O3
+    - name: Run test
+      shell: bash
+      run: |
+        cd Poisson_Equation/src
+        ./out.exe

@@ -6,9 +6,13 @@
 #include <iostream>
 #include <chrono>
 #include <cmath>
+#include <fstream>
+#include <sstream>
+#include <string>
 
 #include "../headers/Dirichlet_Problem.hpp"
 #include "../headers/Solvers.hpp"
+#include "../headers/tasks.hpp"
 
 #define FP double
 
@@ -25,105 +29,116 @@ std::pair<size_t, std::vector<std::vector<FP>>> estimate_time(numcpp::DirichletP
     return {duration, solution};
 }
 
-void test_TopRelaxation(){
-    size_t n = 2048;
-    size_t m = 2048;
-    std::cout << "n = " << n << " m = " << m << '\n';
-
-    FP omega = 1.95;
-    std::array<double, 4> corners = {-1.0, -1.0, 1.0, 1.0};
-    std::vector<FP> init_app((n - 1) * (m - 1), 0.0);
-
-    auto u = [](double x, double y) { return exp(1 - pow(x, 2) - pow(y, 2)); };
-    auto f = [](double x, double y) { return -4 * exp(1 - pow(x, 2) - pow(y, 2)) * (pow(y, 2) + pow(x, 2) - 1); };
-
-    auto mu1 = [](double y) { return exp(-pow(y, 2)); };
-    auto mu2 = [](double y) { return exp(-pow(y, 2)); };
-    auto mu3 = [](double x) { return exp(-pow(x, 2)); };
-    auto mu4 = [](double x) { return exp(-pow(x, 2)); };
-
-    numcpp::DirichletProblemSolver<numcpp::Regular> dirichlet_task;
-    dirichlet_task.set_fraction(m, n);
-    dirichlet_task.set_corners(corners);
-    dirichlet_task.set_u(u);
-    dirichlet_task.set_f(f);
-    dirichlet_task.set_boundary_conditions({mu1, mu2, mu3, mu4});
-
-    //dirichlet_task.set_solver(std::make_unique<numcpp::TopRelaxation>(init_app, 10000, 0.00001, nullptr, std::vector<FP>(), omega));
-    dirichlet_task.set_solver(std::make_unique<numcpp::TopRelaxationOptimizedForDirichletRegularGrid>
-    (init_app, 1000000000, 0.0000000000001, nullptr, std::vector<FP>(), f, mu1, mu2, mu3, mu4, n, m, corners, omega));
-
-    auto [duration, solution] = estimate_time(dirichlet_task);
-}
-
-void test_task(size_t m, size_t n, std::unique_ptr<numcpp::ISolver> LS_solver)
+void report(size_t task_num, size_t n, size_t m, size_t max_iterations, FP eps)
 {
-    std::cout << "n = " << n << " m = " << m << '\n';
-    size_t size = (n - 1) * (m - 1);
+    std::vector<std::string> results;
+    std::vector<std::string> results_err;
+    std::string line = "";
+    std::string curr_string = "";
+    std::string start_string = "";
+
+    std::ifstream solver_results("../files/Solver_results.txt");
+    while (std::getline(solver_results, line)) 
+        results.push_back(line);
+    solver_results.close();
+
+    std::ifstream error("../files/Error.txt");
+    while (std::getline(error, line)) 
+        results_err.push_back(line);
+    error.close();
+
+
     
-    std::array<double, 4> corners = {-1.0, -1.0, 1.0, 1.0};
+    if(task_num == 0)
+    {
+        start_string = "Для решения тестовой задачи использованы сетка ";
+    }
+    else if(task_num == 1)
+    {
+        start_string = "Для решения основной задачи использованы сетка ";
 
-    std::vector<FP> initial_approximation(size, 0.0);
-    LS_solver->set_initial_approximation(initial_approximation);
+        curr_string = "\nДля контроля точности использована сетка(2N) \n с числом разбиений по x : n = ";
+        curr_string += std::to_string(n * 2);
+        curr_string += ", и числом разбиений по y: m = ";
+        curr_string += std::to_string(m * 2);
+        curr_string += ". \nКритерии остановки метода остаются такими же.";
 
-    auto u = [](double x, double y) { return exp(1 - pow(x, 2) - pow(y, 2)); };
-    auto f = [](double x, double y) { return -4 * exp(1 - pow(x, 2) - pow(y, 2)) * (pow(y, 2) + pow(x, 2) - 1); };
-    auto mu1 = [](double y) { return exp(-pow(y, 2)); };
-    auto mu2 = [](double y) { return exp(-pow(y, 2)); };
-    auto mu3 = [](double x) { return exp(-pow(x, 2)); };
-    auto mu4 = [](double x) { return exp(-pow(x, 2)); };
+        std::ifstream solver_results_2("../files/Solver_results_2N.txt");
+        std::vector<std::string> results_2;
+        while (std::getline(solver_results_2, line))
+            results_2.push_back(line);
+        solver_results_2.close();
 
-    numcpp::DirichletProblemSolver<numcpp::Regular> solver;
 
-    solver.set_fraction(m, n);
-    solver.set_corners(corners);
-    solver.set_u(u);
-    solver.set_f(f);
-    solver.set_boundary_conditions({mu1, mu2, mu3, mu4});
-    solver.set_solver(std::move(LS_solver));
+        curr_string += "На решение СЛАУ(2N) затрачено ";
+        curr_string += results_2[2];
+        curr_string += " итераций\n и достигнута точность ";
+        curr_string += results_2[0];
+        curr_string += ".СЛАУ(2N) решена с невязкой по норме Чебышёва ";
+        curr_string += results_2[1];
+    }
+    else
+    {
+        start_string = "Для решения тестовой задачи использованы сетка (нестандартная сетка) ";
+    }
 
-    auto [duration, solution] = estimate_time(solver);
+    std::cout << "\n\n\n\n" << start_string << " с числом разбиений\n по х : n = " << n
+            << ", и числом разбиений по y: m = " << m << ",\n "
+            << "применены критерии остановки \n по точности решения СЛАУ eps(мет) = " << eps
+            << " и по числу итераций N(max) = " << max_iterations << ".\n \n "
+            << "На решение схемы (СЛАУ) затрачено " << results[2]
+            << " итераций и достигнута точность " << results[0]
+            << "\nСхема(СЛАУ) решена с невязкой по норме Чебышёва " << results[1] << "\n" << results_err[0] << "\n" << results_err[1] << "\n\n" << curr_string << "\n\n\n";
+
+
 }
 
-void test_task_custom_grid(size_t m, size_t n, std::unique_ptr<numcpp::ISolver> LS_solver)
-{
-    size_t size = (n / 2 - 1) * (m - 1) + (n / 2) * (m / 2 - 1);
-    std::cout << "n = " << n << " m = " << m << '\n';
 
-    std::vector<FP> initial_approximation(size, 0.0);
-    LS_solver->set_initial_approximation(initial_approximation);
-
-    std::array<double, 4> corners = {-1.0, -1.0, 1.0, 1.0};
-
-    auto u = [](double x, double y) { return exp(1 - pow(x, 2) - pow(y, 2)); };
-    auto f = [](double x, double y) { return -4 * exp(1 - pow(x, 2) - pow(y, 2)) * (pow(y, 2) + pow(x, 2) - 1); };
-
-    auto mu1 = [](double y) { return exp(-pow(y, 2)); };
-    auto mu2 = [](double y) { return exp(1.0 - pow(y, 2)); };
-    auto mu3 = [](double y) { return exp(-pow(y, 2)); };
-    auto mu4 = [](double x) { return exp(-pow(x, 2)); };
-    auto mu5 = [](double x) { return exp(1.0 - pow(x, 2)); };
-    auto mu6 = [](double x) { return exp(-pow(x, 2)); };
-
-    numcpp::DirichletProblemSolver<numcpp::GridType::ReversedR> solver;
-    std::array<std::function<FP(FP)>, 6> arr{mu1, mu2, mu3, mu4, mu5, mu6};
-
-    solver.set_solver(std::move(LS_solver));
-    solver.set_boundary_conditions_for_r_shaped_grid(arr);
-    solver.set_fraction(n, m);
-    solver.set_corners(corners);
-    solver.set_u(u);
-    solver.set_f(f);
-
-    auto [duration, solution] = estimate_time(solver);
-}
+// for test we use functions from tasks.hpp
 
 int main() 
 {
-    size_t m = 1024;
-    size_t n = 1024;
+    size_t m = 500;
+    size_t n = 500;
+    // solver_num chooses a method for solving a system of linear equations
+    // 0 = TopRelaxation
+    // 1 = MinRes
+    // 2 = ChebyshevIteration
+    // 3 = ConGrad
+    //size_t solver_num = 3;
+    size_t max_iterations = 1000000; 
+    FP eps = 0.00000001;
+    FP omega = 1.99;
+    // task_num 
+    // 0 = test 
+    // 1 = main 
+    // 2 = custom test
+    size_t task_num = 0;
 
-    auto LS_solver = std::make_unique<numcpp::MinRes>(std::vector<FP>(), 1000000, 0.00001, nullptr, std::vector<FP>()); 
+    std::cout << "========== TopRelaxation ==========" << std::endl;
+    test_task(0, n, m, max_iterations, eps, omega); // Regular grid
+    report(task_num, n, m, max_iterations, eps);
+    std::cout << std::endl;
 
-    test_task_custom_grid(m, n, std::move(LS_solver));
+    std::cout << "========== MinRes ==========" << std::endl;
+    test_task(1, n, m, max_iterations, eps, omega); // Regular grid
+    report(task_num, n, m, max_iterations, eps);
+    std::cout << std::endl;
+
+    std::cout << "========== ChebyshevIteration ==========" << std::endl;
+    test_task(2, n, m, max_iterations, eps, omega); // Regular grid
+    report(task_num, n, m, max_iterations, eps);
+    std::cout << std::endl;
+
+    std::cout << "========== ConGrad ==========" << std::endl;
+    test_task(3, n, m, max_iterations, eps, omega); // Regular grid
+    report(task_num, n, m, max_iterations, eps);
+    std::cout << std::endl;
+
+    //main_task(solver_num, n, m, max_iterations, eps, omega); // Regular grid
+    // test_custom_task(solver_num, n, m, max_iterations, eps, omega); //ReversedR grid
+
+    // the values in the grid nodes can be found in the files
+    // for approximation in file "../files/Approximation.txt"
+    // for correct solution in file "../files/Correct.txt"
 }
