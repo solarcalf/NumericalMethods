@@ -570,7 +570,7 @@ std::vector<std::vector<FP>> const DirichletProblemSolver<GridType::Regular>::so
                 else
                 {
                     x_max_err = start_x + static_cast<FP>(1 + (i - (n / 2 - 1) * (m / 2)) % (n - 1)) * h;
-                    y_max_err = start_y + static_cast<FP>(m / 2 + 1 + static_cast<int>((i - (n / 2 - 1)) / (n - 1))) * k;
+                    y_max_err = start_y + static_cast<FP>(m / 2 + 1 + static_cast<int>((i - (n / 2 - 1) * (m / 2)) / (n - 1))) * k;
                 }
             }
         }
