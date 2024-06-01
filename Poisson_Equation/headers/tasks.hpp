@@ -45,8 +45,11 @@ void test_task(size_t solver_num, size_t n, size_t m, size_t max_iterations, FP 
         (init_app, max_iterations, eps, nullptr, std::vector<FP>(), f, mu1, mu2, mu3, mu4, n, m, corners, omega));
     else if(solver_num == 1)
         dirichlet_task.set_solver(std::make_unique<numcpp::MinRes>(init_app, max_iterations, eps, nullptr, std::vector<FP>()));
-    else if (solver_num == 2)
+    else if (solver_num == 2){
+        Mmin*=-1;
+        Mmax*=-1;
         dirichlet_task.set_solver(std::make_unique<numcpp::ChebyshevIteration>(init_app, max_iterations, eps, nullptr, std::vector<FP>(), Mmin, Mmax));
+    }
     else 
         dirichlet_task.set_solver(std::make_unique<numcpp::ConGrad>(init_app, max_iterations, eps, nullptr, std::vector<FP>()));
 
