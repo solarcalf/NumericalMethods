@@ -418,22 +418,21 @@ namespace numcpp
             FP k_cheb = 2.0;
             FP tau0 = 1.0 / ((Mmin + Mmax) / 2.0 + (Mmax - Mmin) / 2 * cos(PI / (2.0 * k_cheb) * (1.0 + 2.0 * 0.0)));
             FP tau1 = 1.0 / ((Mmin + Mmax) / 2.0 + (Mmax - Mmin) / 2 * cos(PI / (2.0 * k_cheb) * (1.0 + 2.0 * 1.0)));
-
+            std::cout<<"Метод работает на основе оценок собсвтенных чисел"<<"\n";
+            std::cout<<"k = 2"<<"\n";
             std::cout<<"tau1 = "<<tau0<<" tau2 = "<<tau1<<"\n";
-
-
+            std::cout<<"Максимальное по модулю с.ч. "<<abs(Mmax)<<" Минимальное по модулю с.ч. "<<abs(Mmin)<<"\n";
+            std::vector<FP> residual_first = (*system_matrix) * approximation - b;
+            std::cout<<"Невязка на начальном приближении "<< norm(residual_first)<<"\n";
             for (; i < max_iterations; ++i)
             {
                 std::vector<FP> saved_approximation = approximation;
                 std::vector<FP> residual = (*system_matrix) * approximation - b;
 
-                // FP residual_norm = norm(residual);
-                // if (residual_norm <= required_precision) break;
-
                 if (i % 2 == 0)
-                    approximation = vector_FMA(residual, tau0, approximation);
+                    approximation = vector_FMA(residual, -tau0, approximation);
                 else
-                    approximation = vector_FMA(residual, tau1, approximation);
+                    approximation = vector_FMA(residual, -tau1, approximation);
 
                 approximation_error = error(saved_approximation, approximation);
                 if (approximation_error <= required_precision) break;
